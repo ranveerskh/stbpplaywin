@@ -15,23 +15,23 @@ const contentModes = contentModesContext.module.exports;
 const policy = {
   platform: "windows",
   channel: "stable",
-  latestVersion: "1.8.20",
-  minimumVersion: "1.8.18",
-  downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.20/Netplus-IPTV-Player-Setup-1.8.20.exe",
+  latestVersion: "1.8.19",
+  minimumVersion: "1.8.19",
+  downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.19/Netplus-IPTV-Player-Setup-1.8.19.exe",
 };
 
 test("version policy compares semantic version triplets and gates below minimum only", () => {
   assert.ok(compareVersions("v1.8.9", "1.8.18") < 0);
-  assert.ok(compareVersions("1.8.20", "1.8.18") > 0);
+  assert.ok(compareVersions("1.8.19", "1.8.18") > 0);
   assert.equal(requiresUpdate("1.8.15", policy), true);
-  assert.equal(requiresUpdate("1.8.18", policy), false);
+  assert.equal(requiresUpdate("1.8.18", policy), true);
   assert.equal(requiresUpdate("1.8.19", policy), false);
 });
 
 test("update policy accepts Windows stable installer URLs only", () => {
   const normalized = normalizeUpdateManifest(policy);
-  assert.equal(normalized.latestVersion, "1.8.20");
-  assert.equal(normalized.minimumVersion, "1.8.18");
+  assert.equal(normalized.latestVersion, "1.8.19");
+  assert.equal(normalized.minimumVersion, "1.8.19");
   assert.throws(() => normalizeUpdateManifest({ ...policy, platform: "android" }), /different platform/);
   assert.throws(() => normalizeUpdateManifest({ ...policy, channel: "preview" }), /different release channel/);
   assert.throws(() => normalizeUpdateManifest({ ...policy, minimumVersion: "1.8.21" }), /cannot be newer/);

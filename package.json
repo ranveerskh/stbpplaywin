@@ -1,6 +1,6 @@
 {
   "name": "stb-play",
-  "version": "1.8.18",
+  "version": "1.8.19",
   "private": true,
   "description": "STB PLAY IPTV Player for Live TV, Movies and Series",
   "author": "NetPlus",
@@ -57,6 +57,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
+      "deleteAppDataOnUninstall": false,
       "shortcutName": "STB PLAY",
       "installerIcon": "build/stb-play-desktop.ico",
       "uninstallerIcon": "build/stb-play-desktop.ico",

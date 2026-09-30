@@ -132,19 +132,21 @@ function closeServer(server) {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-test("v1.8.18 release markers and recovery/search boundaries are present", () => {
+test("v1.8.19 release markers and recovery/search boundaries are present", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const updateJson = JSON.parse(fs.readFileSync(path.join(ROOT, "update.json"), "utf8"));
   const app = fs.readFileSync(path.join(ROOT, "local-player", "app.js"), "utf8");
   const server = fs.readFileSync(path.join(ROOT, "local-player", "server.cjs"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "local-player", "index.html"), "utf8");
 
-  assert.equal(packageJson.version, "1.8.18");
-  assert.equal(updateJson.version, "1.8.18");
-  assert.match(updateJson.downloadUrl, /v1\.8\.18\/Netplus-IPTV-Player-Setup-1\.8\.18\.exe$/);
+  assert.equal(packageJson.version, "1.8.19");
+  assert.equal(packageJson.build.appId, "ca.netplus.iptvplayer");
+  assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
+  assert.equal(updateJson.version, "1.8.19");
+  assert.match(updateJson.downloadUrl, /v1\.8\.19\/Netplus-IPTV-Player-Setup-1\.8\.19\.exe$/);
   assert.equal(updateJson.platform, "windows");
   assert.equal(updateJson.channel, "stable");
-  assert.equal(updateJson.minimumVersion, "1.8.16");
+  assert.equal(updateJson.minimumVersion, "1.8.19");
   assert.match(app, /function strictTitleSearchMatch/);
   assert.match(app, /!query \|\| strictTitleSearchMatch\(\{ title: channel\.name \}, query\)/);
   assert.doesNotMatch(server, /ADULT_LIVE_CATEGORY_ID/);
