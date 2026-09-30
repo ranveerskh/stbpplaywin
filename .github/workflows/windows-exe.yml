@@ -1,4 +1,4 @@
-name: Signed Windows release
+name: Windows release
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Check tag and signing configuration
+      - name: Check tag and optional signing configuration
         shell: pwsh
         env:
           WINDOWS_CERTIFICATE_B64: ${{ secrets.WINDOWS_CERTIFICATE_B64 }}
@@ -24,26 +24,35 @@ jobs:
           $package = Get-Content package.json -Raw | ConvertFrom-Json
           if ($env:GITHUB_REF_NAME -ne "v$($package.version)") { throw 'Release tag must match package.json version.' }
           if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_B64) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
-            throw 'A Windows code-signing certificate and password must be configured before a release.'
+            'WINDOWS_SIGNING_ENABLED=false' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            'No Windows code-signing certificate configured. The installer will be unsigned.'
+            exit 0
           }
           $certPath = Join-Path $env:RUNNER_TEMP 'stb-play-release.pfx'
           [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_B64))
           "CSC_LINK=$certPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "CSC_KEY_PASSWORD=$env:WINDOWS_CERTIFICATE_PASSWORD" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          'WINDOWS_SIGNING_ENABLED=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Test and validate sources
         run: npm test
-      - name: Build signed Windows installer
+      - name: Build Windows installer
         run: npm run desktop:make
       - name: Verify installer signature
+        if: env.WINDOWS_SIGNING_ENABLED == 'true'
         shell: pwsh
         run: |
           $installer = Get-ChildItem 'release\Netplus-IPTV-Player-Setup-*.exe' | Select-Object -First 1
           if (-not $installer) { throw 'The Windows installer was not created.' }
           $signature = Get-AuthenticodeSignature -FilePath $installer.FullName
           if ($signature.Status -ne 'Valid') { throw "Installer signature status is $($signature.Status)." }
-      - name: Publish verified Windows release
+      - name: Verify installer exists
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem 'release\Netplus-IPTV-Player-Setup-*.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'The Windows installer was not created.' }
+      - name: Publish Windows release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
