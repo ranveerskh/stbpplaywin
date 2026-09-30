@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.18 strict search, restored live parental locking, subtitles, recovery and analytics
+ VERSION: 1.8.19 strict search, restored live parental locking, subtitles, recovery and analytics
  File: server.cjs
 =========================================================
 */
@@ -38,7 +38,7 @@ const PORT = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPo
   : 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.18";
+const APP_VERSION = "1.8.19";
 const REGISTRATION_API = normalizeRegistrationApiUrl(process.env.STB_PLAY_REGISTRATION_API || DEFAULT_REGISTRATION_API);
 const REGISTRATION_PATH = path.join(path.dirname(CONFIG_PATH), "stb-play-registration.json");
 const REGISTRATION_HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000;
@@ -49,7 +49,7 @@ const UPDATE_MANIFEST_URL = String(
 ).trim();
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.8.18.json"
+  "netplus-diagnostics-v1.8.19.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 const DEFAULT_ANALYTICS_ENDPOINT = "https://us-central1-stb-play-analytics.cloudfunctions.net/analyticsEvents";
@@ -3893,7 +3893,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.18.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.19.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 

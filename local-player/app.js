@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.18 live catalogue fallback, content modes, themes, and update policy
+ VERSION: 1.8.19 live catalogue fallback, content modes, themes, and update policy
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.18";
+const APP_VERSION = "1.8.19";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const CONTENT_MODES = window.StbPlayContentModes;
 const UPDATE_POLICY_CACHE_KEY = "stbPlayVerifiedUpdatePolicy";
@@ -1001,18 +1001,9 @@ function renderContentModeScreens() {
   updateContentModeUnlockButton();
 }
 
-function setContentMode(value, verified = false) {
+function setContentMode(value) {
   const nextMode = CONTENT_MODES?.normalizeMode(value) || "all";
-  if (nextMode === "adult-only" && !verified && !state.contentModeUnlocked) {
-    if (elements.contentModeSelect) elements.contentModeSelect.value = state.contentMode;
-    requestParentalUnlock(() => {
-      state.parentalUnlocked = true;
-      state.contentModeUnlocked = true;
-      setContentMode(nextMode, true);
-    });
-    return;
-  }
-
+  const requiresUnlock = nextMode === "adult-only" && !state.contentModeUnlocked;
   const previousMode = state.contentMode;
   state.contentMode = nextMode;
   if (nextMode !== "adult-only") {
@@ -1037,6 +1028,13 @@ function setContentMode(value, verified = false) {
   }
   if (previousMode !== nextMode) state.category = "all";
   renderContentModeScreens();
+  if (requiresUnlock) {
+    requestParentalUnlock(() => {
+      state.parentalUnlocked = true;
+      state.contentModeUnlocked = true;
+      renderContentModeScreens();
+    });
+  }
 }
 
 function getDefaultPlayer() {
@@ -5252,12 +5250,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.18.json";
+  link.download = "netplus-diagnostics-v1.8.19.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.18.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.19.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
