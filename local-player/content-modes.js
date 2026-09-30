@@ -40,5 +40,11 @@
     return true;
   }
 
-  return { normalizeMode, isRestrictedCategory, isRestrictedChannel, isRestrictedMedia, isVisibleInMode };
+  function canDisplayInMode(mode, restricted, unlocked = false) {
+    const normalized = normalizeMode(mode);
+    if (normalized === "adult-only") return Boolean(restricted && unlocked);
+    return isVisibleInMode(normalized, restricted);
+  }
+
+  return { normalizeMode, isRestrictedCategory, isRestrictedChannel, isRestrictedMedia, isVisibleInMode, canDisplayInMode };
 }));

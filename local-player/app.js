@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.17 live catalogue fallback, content modes, themes, and update policy
+ VERSION: 1.8.18 live catalogue fallback, content modes, themes, and update policy
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.17";
+const APP_VERSION = "1.8.18";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const CONTENT_MODES = window.StbPlayContentModes;
 const UPDATE_POLICY_CACHE_KEY = "stbPlayVerifiedUpdatePolicy";
@@ -21,6 +21,7 @@ const state = {
   liveScrollTop: 0,
 
   parentalUnlocked: false,
+  contentModeUnlocked: false,
   parentalConfigured: false,
   pendingUnlockAction: null,
 
@@ -976,13 +977,14 @@ function applyPreferences() {
 
 function updateContentModeUnlockButton() {
   if (elements.unlockContentModeButton) {
-    elements.unlockContentModeButton.hidden = state.contentMode !== "adult-only" || state.parentalUnlocked;
+    elements.unlockContentModeButton.hidden = state.contentMode !== "adult-only" || state.contentModeUnlocked;
   }
 }
 
 function unlockContentMode() {
   requestParentalUnlock(() => {
     state.parentalUnlocked = true;
+    state.contentModeUnlocked = true;
     renderContentModeScreens();
   });
 }
@@ -1001,10 +1003,11 @@ function renderContentModeScreens() {
 
 function setContentMode(value, verified = false) {
   const nextMode = CONTENT_MODES?.normalizeMode(value) || "all";
-  if (nextMode === "adult-only" && !verified && !state.parentalUnlocked) {
+  if (nextMode === "adult-only" && !verified && !state.contentModeUnlocked) {
     if (elements.contentModeSelect) elements.contentModeSelect.value = state.contentMode;
     requestParentalUnlock(() => {
       state.parentalUnlocked = true;
+      state.contentModeUnlocked = true;
       setContentMode(nextMode, true);
     });
     return;
@@ -1012,7 +1015,10 @@ function setContentMode(value, verified = false) {
 
   const previousMode = state.contentMode;
   state.contentMode = nextMode;
-  if (nextMode !== "adult-only") state.parentalUnlocked = false;
+  if (nextMode !== "adult-only") {
+    state.parentalUnlocked = false;
+    state.contentModeUnlocked = false;
+  }
   localStorage.setItem("stbPlayContentMode", nextMode);
   if (elements.contentModeSelect) elements.contentModeSelect.value = nextMode;
   if (state.selected?.kind === "live" && (
@@ -1070,7 +1076,7 @@ function contentModeAllows(restricted) {
 }
 
 function canDisplayRestrictedContent(restricted) {
-  return contentModeAllows(restricted) && !(state.contentMode === "adult-only" && restricted && !state.parentalUnlocked);
+  return CONTENT_MODES?.canDisplayInMode(state.contentMode, restricted, state.contentModeUnlocked) ?? true;
 }
 
 function isRestrictedMedia(item) {
@@ -1172,9 +1178,6 @@ function setMode(mode) {
   if (isLive) stopVodPlayback();
   else stopLivePlayback(false);
 
-  const lockAgain = !isContent && state.parentalUnlocked;
-  if (!isContent) state.parentalUnlocked = false;
-
   if (!isContent) stopVodPlayback();
   elements.workspace.hidden = !isLive;
   elements.dashboardWorkspace.hidden = !isDashboard;
@@ -1187,8 +1190,6 @@ function setMode(mode) {
   document.querySelectorAll(".mode-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
   });
-
-  if (lockAgain) renderContentModeScreens();
 
   if (mode === "settings") {
     elements.settingsModal.hidden = false;
@@ -1219,7 +1220,6 @@ function clearVodSearchState() {
 }
 
 async function openContentBrowser() {
-  state.parentalUnlocked = false;
   clearVodSearchState();
   state.vod.filter = "all";
   setMode("content");
@@ -1527,6 +1527,7 @@ elements.pinUnlockForm.addEventListener("submit", async (event) => {
     });
 
     state.parentalUnlocked = true;
+    if (state.contentMode === "adult-only") state.contentModeUnlocked = true;
     const action = state.pendingUnlockAction;
     state.pendingUnlockAction = null;
     closePinModal(false);
@@ -1613,8 +1614,6 @@ function renderCategories() {
 
     button.addEventListener("click", () => {
       if (state.editingGroups) return;
-
-      if (state.category !== category.id) state.parentalUnlocked = false;
 
       const choose = async () => {
         state.category = category.id;
@@ -1781,12 +1780,12 @@ function renderChannels() {
     const empty = document.createElement("p");
     empty.className = "list-note";
     empty.textContent =
-      state.contentMode === "adult-only" && !state.parentalUnlocked
+      state.contentMode === "adult-only" && !state.contentModeUnlocked
         ? "Unlock the selected content mode with your parental PIN."
         : state.category === "favorites"
         ? "No favorite channels yet. Tap ★ beside a channel to add it."
         : "No channels found.";
-    if (state.contentMode === "adult-only" && !state.parentalUnlocked) {
+    if (state.contentMode === "adult-only" && !state.contentModeUnlocked) {
       const unlock = document.createElement("button");
       unlock.type = "button";
       unlock.className = "secondary-wide-button";
@@ -2596,14 +2595,14 @@ function renderVodGrid() {
   if (!cards.length) {
     const note = document.createElement("p");
     note.className = "list-note";
-    note.textContent = state.contentMode === "adult-only" && !state.parentalUnlocked
+    note.textContent = state.contentMode === "adult-only" && !state.contentModeUnlocked
       ? "Unlock the selected content mode with your parental PIN."
       : state.vod.query && state.vod.searchIndexing
       ? "Search is still scanning the provider catalogue…"
       : state.vod.query
         ? "No titles match your search across the provider catalogue."
         : "No titles were returned for this category.";
-    if (state.contentMode === "adult-only" && !state.parentalUnlocked) {
+    if (state.contentMode === "adult-only" && !state.contentModeUnlocked) {
       const unlock = document.createElement("button");
       unlock.type = "button";
       unlock.className = "secondary-wide-button";
@@ -2687,7 +2686,8 @@ async function selectVodCategory(categoryId, verified = false) {
   if (!category) return;
 
   if (verified) state.parentalUnlocked = true;
-  if (!verified && state.vod.categoryId && state.vod.categoryId !== categoryId) state.parentalUnlocked = false;
+  /* PIN authorization lasts for the app session; changing categories must not
+     reset the selected content mode or make its list jump back. */
 
   /* Cancel the previous category's request so it cannot leave the new
      category stuck in a loading state. */
@@ -3411,7 +3411,6 @@ elements.closeVodPlayerButton.addEventListener("click", () => {
   resetVodPlayer();
   elements.vodPlayerSection.hidden = true;
   document.body.classList.remove("vod-playing");
-  state.parentalUnlocked = false;
   renderVodCategories();
   void restoreVodBrowserAfterPlayback();
   requestAnimationFrame(() => window.scrollTo(0, state.vod.categoryScrollTop || 0));
@@ -3880,7 +3879,7 @@ async function loadSeriesCategories() {
 async function selectSeriesCategory(categoryId, verified = false) {
   const category = seriesCategoryById(categoryId); if (!category) return;
   if (verified) state.parentalUnlocked = true;
-  if (!verified && state.series.categoryId && state.series.categoryId !== categoryId) state.parentalUnlocked = false;
+  /* PIN authorization lasts for the app session. */
   if (category.locked && !state.parentalUnlocked) { requestParentalUnlock(() => selectSeriesCategory(categoryId, true)); return; }
   state.series.categoryId = categoryId; state.series.page = 0; state.series.items = []; state.series.itemIds = new Set(); state.series.ended = false; state.series.loadToken += 1; state.series.query = elements.seriesSearch.value.trim();
   elements.seriesGrid.innerHTML = '<p class="list-note">Loading series...</p>'; renderSeriesCategories();
@@ -4347,7 +4346,7 @@ function emptyShelf(message) {
   const label = document.createElement("span");
   label.textContent = message;
   note.append(label);
-  if (state.contentMode === "adult-only" && !state.parentalUnlocked) {
+  if (state.contentMode === "adult-only" && !state.contentModeUnlocked) {
     const unlock = document.createElement("button");
     unlock.type = "button";
     unlock.className = "secondary-wide-button";
@@ -5212,6 +5211,7 @@ elements.updatePinButton.addEventListener("click", async () => {
     });
 
     state.parentalUnlocked = false;
+    state.contentModeUnlocked = false;
     state.parentalConfigured = true;
     state.recoveryConfigured = true;
     elements.pinNotice.textContent = result.recoveryCode ? "PIN updated. Save the new recovery code below." : "PIN updated successfully.";
@@ -5252,12 +5252,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.17.json";
+  link.download = "netplus-diagnostics-v1.8.18.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.17.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.18.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
@@ -5311,6 +5311,7 @@ elements.setupForm.addEventListener("submit", async (event) => {
     localStorage.setItem("netplusMac", mac);
 
     state.parentalUnlocked = false;
+    state.contentModeUnlocked = false;
     elements.parentalPin.value = "";
 
     /* Keep the setup screen covered until the new portal is fully loaded. */

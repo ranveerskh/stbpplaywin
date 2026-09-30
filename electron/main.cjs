@@ -8,6 +8,8 @@ const path = require("node:path");
 const PORT = 3847;
 let playerProcess;
 
+if (process.platform === "win32") app.setAppUserModelId("ca.netplus.iptvplayer");
+
 const DEFAULT_RELEASE_REPOSITORY = "ranveerskh/stbpplaywin";
 const configuredReleaseRepository = String(process.env.STB_PLAY_RELEASE_REPOSITORY || DEFAULT_RELEASE_REPOSITORY).trim();
 const RELEASE_REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(configuredReleaseRepository)
@@ -117,7 +119,9 @@ async function openPlayer() {
     ? path.join(process.resourcesPath, "local-player")
     : path.join(__dirname, "..", "local-player");
   const configPath = path.join(app.getPath("userData"), "config.json");
-  const iconPath = app.isPackaged ? path.join(process.resourcesPath, "stb-play-desktop-v1.8.9.ico") : path.join(__dirname, "..", "build", "stb-play-desktop-v1.8.9.ico");
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, "stb-play-desktop.ico")
+    : path.join(__dirname, "..", "build", "stb-play-desktop.ico");
   playerProcess = spawn(process.execPath, [path.join(playerRoot, "server.cjs")], {
     env: {
       ...process.env,

@@ -132,16 +132,16 @@ function closeServer(server) {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-test("v1.8.17 release markers and recovery/search boundaries are present", () => {
+test("v1.8.18 release markers and recovery/search boundaries are present", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const updateJson = JSON.parse(fs.readFileSync(path.join(ROOT, "update.json"), "utf8"));
   const app = fs.readFileSync(path.join(ROOT, "local-player", "app.js"), "utf8");
   const server = fs.readFileSync(path.join(ROOT, "local-player", "server.cjs"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "local-player", "index.html"), "utf8");
 
-  assert.equal(packageJson.version, "1.8.17");
-  assert.equal(updateJson.version, "1.8.17");
-  assert.match(updateJson.downloadUrl, /v1\.8\.17\/Netplus-IPTV-Player-Setup-1\.8\.17\.exe$/);
+  assert.equal(packageJson.version, "1.8.18");
+  assert.equal(updateJson.version, "1.8.18");
+  assert.match(updateJson.downloadUrl, /v1\.8\.18\/Netplus-IPTV-Player-Setup-1\.8\.18\.exe$/);
   assert.equal(updateJson.platform, "windows");
   assert.equal(updateJson.channel, "stable");
   assert.equal(updateJson.minimumVersion, "1.8.16");
@@ -170,7 +170,7 @@ test("analytics contract keeps payload anonymous and allow-listed", () => {
   const payload = normalizeAnalyticsPayload({
     installationId,
     name: "playback_failed",
-    version: "1.8.17",
+    version: "1.8.18",
     platform: "linux",
     meta: {
       player: "internal",
@@ -196,7 +196,7 @@ test("analytics contract keeps payload anonymous and allow-listed", () => {
 });
 
 test("live catalogue loads a missing locked category on demand and recovers 401/stale playback", async (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stb-play-live-v1.8.17-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stb-play-live-v1.8.18-"));
   const portalPort = await freePort();
   const playerPort = await freePort();
   const portal = startMockPortal(portalPort);
@@ -310,7 +310,7 @@ test("update policy endpoint validates a configurable local manifest and remains
       channel: "stable",
       version: "1.8.20",
       latestVersion: "1.8.20",
-      minimumVersion: "1.8.17",
+      minimumVersion: "1.8.18",
       notes: "Safe update policy test",
       downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.20/Netplus-IPTV-Player-Setup-1.8.20.exe",
     },
@@ -338,7 +338,7 @@ test("update policy endpoint validates a configurable local manifest and remains
   const normalized = await accepted.json();
   assert.equal(normalized.platform, "windows");
   assert.equal(normalized.channel, "stable");
-  assert.equal(normalized.minimumVersion, "1.8.17");
+  assert.equal(normalized.minimumVersion, "1.8.18");
   assert.equal(normalized.latestVersion, "1.8.20");
 
   state.policy.downloadUrl += "?token=not-allowed";
@@ -350,7 +350,7 @@ test("update policy endpoint validates a configurable local manifest and remains
 });
 
 test("local player queues and delivers an analytics event to the backend", async (t) => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stb-play-v1.8.17-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stb-play-v1.8.18-"));
   const analyticsPort = await freePort();
   const playerPort = await freePort();
   const analyticsDataPath = path.join(tempRoot, "analytics-data.json");
@@ -381,7 +381,7 @@ test("local player queues and delivers an analytics event to the backend", async
     body: JSON.stringify({
       installationId,
       name: "app_opened",
-      version: "1.8.17",
+      version: "1.8.18",
       platform: "linux",
       meta: { screen: "app", portalUrl: "https://should-not-be-sent.example" },
     }),
@@ -394,7 +394,7 @@ test("local player queues and delivers an analytics event to the backend", async
     body: JSON.stringify({
       installationId,
       name: "crash_reported",
-      version: "1.8.17",
+      version: "1.8.18",
       platform: "linux",
       meta: { screen: "app", errorType: "unhandled-rejection", rawError: "must-not-be-stored" },
     }),
@@ -410,7 +410,7 @@ test("local player queues and delivers an analytics event to the backend", async
 
   assert.equal(store?.events?.length, 2, `analytics delivery failed: ${player.testOutput()}`);
   assert.deepEqual(store.events.map((event) => event.name), ["app_opened", "crash_reported"]);
-  assert.equal(store.events[0].version, "1.8.17");
+  assert.equal(store.events[0].version, "1.8.18");
   assert.equal(store.events[0].meta.screen, "app");
   assert.equal(store.events[1].meta.errorType, "unhandled-rejection");
   assert.equal(store.events[0].uid.length, 64);
@@ -420,7 +420,7 @@ test("local player queues and delivers an analytics event to the backend", async
   const invalid = await fetch(`http://127.0.0.1:${playerPort}/api/analytics/event`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ installationId: "bad", name: "app_opened", version: "1.8.17", platform: "linux" }),
+    body: JSON.stringify({ installationId: "bad", name: "app_opened", version: "1.8.18", platform: "linux" }),
   });
   assert.equal(invalid.status, 400);
 });

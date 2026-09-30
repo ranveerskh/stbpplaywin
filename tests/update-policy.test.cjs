@@ -16,22 +16,22 @@ const policy = {
   platform: "windows",
   channel: "stable",
   latestVersion: "1.8.20",
-  minimumVersion: "1.8.17",
+  minimumVersion: "1.8.18",
   downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.20/Netplus-IPTV-Player-Setup-1.8.20.exe",
 };
 
 test("version policy compares semantic version triplets and gates below minimum only", () => {
-  assert.ok(compareVersions("v1.8.9", "1.8.17") < 0);
-  assert.ok(compareVersions("1.8.20", "1.8.17") > 0);
+  assert.ok(compareVersions("v1.8.9", "1.8.18") < 0);
+  assert.ok(compareVersions("1.8.20", "1.8.18") > 0);
   assert.equal(requiresUpdate("1.8.15", policy), true);
-  assert.equal(requiresUpdate("1.8.17", policy), false);
+  assert.equal(requiresUpdate("1.8.18", policy), false);
   assert.equal(requiresUpdate("1.8.19", policy), false);
 });
 
 test("update policy accepts Windows stable installer URLs only", () => {
   const normalized = normalizeUpdateManifest(policy);
   assert.equal(normalized.latestVersion, "1.8.20");
-  assert.equal(normalized.minimumVersion, "1.8.17");
+  assert.equal(normalized.minimumVersion, "1.8.18");
   assert.throws(() => normalizeUpdateManifest({ ...policy, platform: "android" }), /different platform/);
   assert.throws(() => normalizeUpdateManifest({ ...policy, channel: "preview" }), /different release channel/);
   assert.throws(() => normalizeUpdateManifest({ ...policy, minimumVersion: "1.8.21" }), /cannot be newer/);
@@ -48,4 +48,8 @@ test("content modes retain all mode and filter only explicitly restricted record
   assert.equal(contentModes.isVisibleInMode("adult-free", contentModes.isRestrictedChannel(generalChannel, categories)), true);
   assert.equal(contentModes.isVisibleInMode("adult-only", contentModes.isRestrictedChannel(restrictedChannel, categories)), true);
   assert.equal(contentModes.isVisibleInMode("adult-only", contentModes.isRestrictedChannel(generalChannel, categories)), false);
+  assert.equal(contentModes.canDisplayInMode("adult-only", true, false), false);
+  assert.equal(contentModes.canDisplayInMode("adult-only", true, true), true);
+  assert.equal(contentModes.canDisplayInMode("adult-only", false, true), false);
+  assert.equal(contentModes.canDisplayInMode("adult-free", false, false), true);
 });

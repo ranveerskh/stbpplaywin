@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.17 strict search, restored live parental locking, subtitles, recovery and analytics
+ VERSION: 1.8.18 strict search, restored live parental locking, subtitles, recovery and analytics
  File: styles.css
 =========================================================
 */
@@ -1176,7 +1176,7 @@ body.theme-light .dashboard-hero .dashboard-hero-meta span { color:#f5fbff !impo
 .theme-light .recovery-code-panel small,.theme-light .forgot-pin-box label { color:#476276; }
 .theme-light .recovery-code-panel strong { color:#7a4e0c; }
 
-/* v1.8.17: keep Settings readable at desktop widths. The previous 12-column
+/* v1.8.18: keep Settings readable at desktop widths. The previous 12-column
    layout squeezed several cards into tiny two-column slices. */
 .settings-page-grid {
   grid-template-columns:repeat(2,minmax(0,1fr));
