@@ -1,0 +1,23 @@
+STB PLAY v1.8.10 HLS runtime and Settings repair
+
+This update fixes the v1.8.9 GitHub packaging mistake. The previous GitHub
+commit included the application code but omitted local-player/hls.min.js and
+local-player/assets, so the installed application could not create an HLS.js
+player and the logo assets were also unavailable.
+
+Included runtime files:
+- local-player/hls.min.js
+- local-player/assets/stb-play-logo.png
+- local-player/assets/stb-play-logo.svg
+
+UI/runtime fixes:
+- Settings is now a readable two-column desktop layout and one-column compact layout.
+- Default player remains Auto, Internal player, or VLC.
+- Auto opens VLC when the built-in HLS runtime cannot be used.
+- Diagnostics use the v1.8.10 filename and server report path.
+- Version/cache markers are 1.8.10.
+- Hardcoded master PIN removed. A per-installation recovery code is generated
+  when a parental PIN is created, and only its hash is stored locally.
+
+The Windows installer is built by the GitHub Actions workflow after the commit
+reaches main. The source tree must retain the full local-player directory.

@@ -1,0 +1,24 @@
+{
+  "functions": {
+    "source": "analytics-backend/functions",
+    "runtime": "nodejs22"
+  },
+  "hosting": {
+    "public": "analytics-dashboard",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "cleanUrls": true,
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

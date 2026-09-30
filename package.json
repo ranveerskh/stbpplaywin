@@ -1,0 +1,66 @@
+{
+  "name": "stb-play",
+  "version": "1.8.16",
+  "private": true,
+  "description": "STB PLAY IPTV Player for Live TV, Movies and Series",
+  "author": "NetPlus",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "test": "npm run lint && node --test tests/*.test.cjs analytics-backend/tests/v1.8.13-smoke.test.cjs",
+    "lint": "node --check electron/main.cjs && node --check local-player/server.cjs && node --check local-player/app.js && node --check local-player/content-modes.js && node --check local-player/update-policy.cjs",
+    "build": "npm run desktop:make",
+    "analytics:install": "npm --prefix analytics-backend/functions install --no-audit --no-fund",
+    "analytics:test": "node --test analytics-backend/tests/v1.8.13-smoke.test.cjs",
+    "desktop:make": "electron-builder --win nsis --publish never"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "hls.js": "^1.7.1",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "react-server-dom-webpack": "19.2.6",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "vinext": "0.0.50",
+    "vite": "8.0.13",
+    "wrangler": "4.92.0",
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "type": "module",
+  "displayName": "STB PLAY",
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "ca.netplus.iptvplayer",
+    "productName": "STB PLAY",
+    "asar": false,
+    "directories": { "output": "release" },
+    "files": ["electron/**", "package.json"],
+    "extraResources": [{ "from": "local-player", "to": "local-player" }, { "from": "build/stb-play-desktop-v1.8.9.ico", "to": "stb-play-desktop-v1.8.9.ico" }],
+    "win": { "target": ["nsis"], "icon": "build/stb-play-desktop-v1.8.9.ico" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "shortcutName": "STB PLAY",
+      "installerIcon": "build/stb-play-desktop-v1.8.9.ico",
+      "uninstallerIcon": "build/stb-play-desktop-v1.8.9.ico",
+      "artifactName": "Netplus-IPTV-Player-Setup-${version}.${ext}"
+    }
+  }
+}

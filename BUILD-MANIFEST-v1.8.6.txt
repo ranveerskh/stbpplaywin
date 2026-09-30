@@ -1,0 +1,13 @@
+STB PLAY v1.8.6 public-release manifest
+Build date: 2026-08-28
+
+- Removed bundled provider portal URLs and old test branding.
+- Added explicit STB PLAY package, installer, and desktop icon metadata.
+- Diagnostics are opt-in and redact MAC, PIN, tokens, cookies, provider hostname, and full URLs.
+- Added public-use disclaimer, privacy notice, terms, FAQ, and update checker.
+- Retained the requested master PIN recovery flow.
+
+Validation:
+- Node syntax checks pass for the renderer, local server, and Electron main process.
+- package.json and update.json pass JSON validation.
+- ZIP integrity verified after packaging.

@@ -1,0 +1,9 @@
+{
+  "platform": "windows",
+  "channel": "stable",
+  "version": "1.8.16",
+  "latestVersion": "1.8.16",
+  "minimumVersion": "1.8.16",
+  "notes": "Catalogue reliability, appearance and content preferences, configurable version enforcement, and preserved local profiles and settings.",
+  "downloadUrl": "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.16/Netplus-IPTV-Player-Setup-1.8.16.exe"
+}

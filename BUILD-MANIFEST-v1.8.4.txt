@@ -1,0 +1,15 @@
+STB PLAY v1.8.4 build manifest
+Build date: 2026-08-28
+
+This update includes:
+- Portal loading overlay with named portal, animated 0–100% progress, and a clear expired/unavailable-server provider message.
+- Consistent icon-only close controls across modals and player dialogs.
+- Refined Home, Live TV, Movies & Series, Favourites, and dashboard action icons.
+- Single-quality streams start automatically; multiple choices are shown as Watch 1080p / Watch 4K style actions.
+- Adult/restricted titles are excluded from Continue Watching and recommendation history while remaining protected in the catalogue.
+- Existing subscription countdown, expiry reminder, borderless navy/gold icon, light-theme contrast, and per-category channel scroll fixes retained.
+
+Validation:
+- app.js, server.cjs, and electron/main.cjs pass Node syntax checks.
+- package.json passes JSON validation.
+- build/icon.ico contains the current STB PLAY artwork at multiple Windows icon sizes.

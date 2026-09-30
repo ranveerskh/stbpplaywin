@@ -1,0 +1,17 @@
+STB PLAY v1.8.8 release manifest
+Build date: 2026-08-28
+
+- Correct GitHub repository target: ranveerskh/netplus-player.
+- Windows workflow now publishes the built installer as a GitHub Release after a versioned commit reaches main.
+- Latest-installer bootstrapper now reports a clear message when no Release exists.
+- Retained the public-release branding, privacy, legal, FAQ, and playback updates.
+
+Release flow:
+1. Push the versioned source commit to main.
+2. GitHub Actions builds the Windows installer.
+3. The workflow creates the matching v1.8.8 GitHub Release and uploads the installer.
+4. Install-Latest.cmd downloads the latest published installer.
+
+Validation:
+- Node syntax and JSON validation pass.
+- ZIP integrity verified after packaging.

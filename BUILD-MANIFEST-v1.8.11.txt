@@ -1,0 +1,20 @@
+STB PLAY v1.8.11 Portal loading and update delivery release
+
+This update keeps the portal connection screen visible until the saved or new
+portal has finished loading. It also adds a quiet startup update check with a
+15-second bottom-right notification and a direct installer download button.
+
+Included fixes:
+- New portal details show the progress modal immediately after Save & Connect.
+- Reopening the app shows the saved portal progress modal before Live TV or
+  the setup screen can appear behind a long catalogue request.
+- Portal failures remain in the progress modal with a provider/server message.
+- Settings can check for updates manually, while startup checks automatically.
+- Update downloads point directly to the Windows .exe asset, not a Releases
+  page.
+- The bundled HLS runtime, transparent app logo, VLC fallback, Settings repair,
+  and per-installation parental recovery code from v1.8.10 remain included.
+
+The Windows installer is built by GitHub Actions after the commit reaches main.
+The expected release asset is:
+Netplus-IPTV-Player-Setup-1.8.11.exe

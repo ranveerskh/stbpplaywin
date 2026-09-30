@@ -1,0 +1,67 @@
+STB PLAY — Fresh Build Manifest
+Version: 1.8.0
+Build date: 2026-08-28
+Build label: Live TV bounded MSE recovery + VLC codec fallback + exact search
+
+Included fixes
+1. Final movie and episode http/https quality URLs bypass duplicate create_link.
+2. Opaque and relative playback commands still use Stalker create_link.
+3. Movie flow remains title -> quality -> playback.
+4. Show flow remains title -> seasons -> episodes -> quality -> playback.
+5. Live HLS 401/403/404/410/502/504 failures trigger immediate fresh-link renewal.
+6. A renewed Live TV link uses a clean HLS restart after the old instance is detached.
+7. HTML/SafeBrowse responses masquerading as .m3u8 are rejected by the relay.
+8. Live recovery is bounded and only resets after a stable 15-second playback window.
+9. v1.8.0 uses the tested paced VOD queue, a small background shelf warm-up,
+   local metadata search, and lazy title-detail refresh while keeping Continue
+   Watching and premium Home UI.
+   history deletion, light/dark themes, and responsive layout.
+10. Movies and Series use one page with provider-wide search and readable quality labels.
+11. VOD opens in an in-app full-screen overlay; controls auto-hide and return on tap.
+12. Daily automatic refresh and manual Settings refresh are included.
+13. VOD category requests are cancelled when switching categories; local index polling transfers only new rows.
+14. The tested V1.5.8 server playback fix is included in local-player/server.cjs.
+15. GitHub Actions Windows NSIS installer workflow is included.
+16. electron-builder publishing is explicitly disabled for CI installer builds.
+17. Home hero now rotates every 8 seconds with dots/arrows and pauses on hover/focus.
+18. Hero artwork uses a sharp poster layer over a softened cinematic backdrop.
+19. Home recommendations deduplicate provider copies and keep metadata inside the card.
+20. Continue Watching has a visible Resume action; saved series episodes resume from their last position.
+21. Series episode labels no longer repeat the provider's "Episode N" prefix.
+22. The clean navy/gold STB PLAY PNG has no white/grey outside halo or background.
+23. Hero copy no longer clips metadata or action buttons while rotating titles.
+24. Long series episode lists are contained in a fixed, scrollable details box,
+    retaining the selected season's scroll position.
+25. Returning from Home playback restores and visibly renders the Movies & Series
+    All catalogue, including when the selected provider category is already `*`.
+26. Hero height is fixed with enough room for long titles, descriptions, and actions;
+    text wraps safely instead of leaving buttons outside the frame.
+27. Light theme keeps hero copy readable, paints the Live TV empty player as a
+    light panel, and extends the page background instead of showing a black tail.
+28. The series details modal gives the episode list the remaining modal height,
+    so it scrolls both directions and retains per-series/per-season position.
+
+Verified before packaging
+- local-player/server.cjs: node --check passed
+- local-player/app.js: node --check passed
+- package.json version: 1.8.0 confirmed
+- desktop:make: electron-builder --win nsis --publish never confirmed
+- workflow uses Node 22 and uploads release/Netplus-IPTV-Player-Setup-*.exe
+- no portal credentials, config.json, diagnostics, EXE, or node_modules included
+
+Provider note
+The app can renew expired links and correctly use direct quality links, but it
+cannot restore content that the upstream IPTV provider has removed or blocked.
+29. Settings is now a responsive premium dashboard of grouped cards with a subscription status card.
+30. Subscription expiry is read from the provider profile when available; missing provider data is shown honestly.
+31. VOD search now matches title, alternate title, and path only; descriptions and cast names no longer create unrelated matches.
+32. Search results are capped at the first 100 matching titles and show an accurate matching count.
+33. Live HLS keeps a larger sync/buffer window, recovers repeated buffer stalls, and reports unsupported codecs without endless retries.
+34. Live TV now immediately detaches corrupted MediaSource/HLS state for MSE reset and buffer-append failures, then starts a clean fresh-link/player session.
+35. Master HLS playlists filter browser-incompatible HEVC/AC-3 variants when a compatible variant is available; all-incompatible channels show a clear codec message.
+36. The VOD HLS recovery handler now has defined stall state and renews safely instead of reaching an undefined recovery path during errors.
+37. Fatal and non-fatal MediaSource reset errors use the same bounded hard-recovery path, preventing duplicate fragment requests from an old player instance.
+38. When the built-in player reports an unsupported codec, the active relay stream can be opened safely in VLC without exposing the provider URL or credentials.
+39. VLC requests receive the original HLS variants, while browser requests still receive the compatible-variant filter, so VLC can decode HEVC/AC-3 fallback streams.
+40. Rapid resets across newly renewed links count toward the same recovery limit; the app stops the loop and exposes VLC instead of clearing the counter after one fragment.
+41. Stalled live segment bodies time out sooner so the player can retry or hand off to VLC instead of waiting through a 45-second dead request.

@@ -1,0 +1,34 @@
+STB PLAY v1.8.13 build manifest
+
+Release scope:
+- strict title/alternate-title search for Movies & Series and Live TV;
+- automatic PIN-locked [PIN] 18+ Channels live category;
+- app parental PIN only; provider PIN is never requested;
+- temporary live authorization 401 retry;
+- stale live channel catalogue refresh and clear unavailable message;
+- diagnostics off by default with download-and-attach support guidance;
+- anonymous allow-listed analytics with a local retry outbox;
+- private Firebase Functions endpoint and separate Firebase Auth dashboard;
+- local smoke test coverage for install/update markers, endpoint contract,
+  analytics queue delivery, and safe data handling.
+
+Version markers:
+- package.json: 1.8.13
+- VERSION.txt: 1.8.13
+- local-player/app.js: 1.8.13
+- local-player/server.cjs: 1.8.13
+- update.json: 1.8.13
+
+Backend-first release order:
+1. Deploy analytics-backend/functions/analyticsEvents.
+2. Deploy Firestore rules.
+3. Create admins/{uid} with role "admin".
+4. Deploy the separate analytics-dashboard through Firebase Hosting.
+5. Build and distribute Netplus-IPTV-Player-Setup-1.8.13.exe.
+
+Privacy boundary:
+The app sends only a random installation ID, version, platform, an
+allow-listed event name, and safe metadata. The backend stores a one-way HMAC
+of the installation ID. Provider credentials, portal URLs, MAC addresses,
+PINs, stream URLs, channel names, raw IP addresses, and personal files are
+not part of the analytics payload.

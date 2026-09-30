@@ -1,0 +1,13 @@
+STB PLAY v1.8.9 playback and desktop icon fix
+Build date: 2026-08-29
+
+- Adds Settings > Playback > Default player: Auto, Internal player, or VLC.
+- Auto uses the internal player first and keeps VLC available for codec failures.
+- VLC mode opens the live/movie/episode relay directly in VLC.
+- Uses a new versioned Windows ICO generated from the same PNG shown in the app.
+- Electron-builder embeds the new ICO in the installer and application.
+- NSIS always recreates the STB PLAY desktop shortcut during installation.
+- The BrowserWindow now loads the versioned packaged icon resource.
+- Version 1.8.9 forces a fresh installer/release instead of reusing v1.8.8.
+
+The icon has no white/grey outer halo; the gold outline is part of the logo.

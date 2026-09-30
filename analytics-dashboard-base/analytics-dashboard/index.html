@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07111f" />
+    <title>STB PLAY · Analytics</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <main id="loginView" class="auth-shell">
+      <section class="auth-card" aria-labelledby="loginTitle">
+        <div class="brand-mark" aria-hidden="true">SP</div>
+        <p class="eyebrow">STB PLAY</p>
+        <h1 id="loginTitle">Analytics dashboard</h1>
+        <p class="muted">Private product and release health overview.</p>
+
+        <form id="loginForm" class="auth-form">
+          <label>
+            Email
+            <input id="emailInput" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input id="passwordInput" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="button button-primary" type="submit">Sign in</button>
+          <p id="loginError" class="form-error" role="alert" hidden></p>
+        </form>
+      </section>
+    </main>
+
+    <main id="dashboardView" class="dashboard-shell" hidden>
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark brand-mark-small" aria-hidden="true">SP</div>
+          <div>
+            <strong>STB PLAY</strong>
+            <span>Analytics</span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span id="lastUpdated" class="last-updated">Not loaded</span>
+          <button id="refreshButton" class="button button-quiet" type="button">Refresh</button>
+          <button id="logoutButton" class="button button-outline" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <section class="page-intro">
+        <div>
+          <p class="eyebrow">PRODUCT OVERVIEW</p>
+          <h1>STB PLAY health at a glance</h1>
+          <p class="muted">Anonymous installation activity, release downloads and app health.</p>
+        </div>
+        <div id="dashboardStatus" class="status-pill status-neutral">Waiting for data</div>
+      </section>
+
+      <section class="metric-grid" aria-label="Key metrics">
+        <article class="metric-card metric-gold">
+          <span class="metric-label">Installer downloads</span>
+          <strong id="metricDownloads">—</strong>
+          <small>Windows setup assets on GitHub</small>
+        </article>
+        <article class="metric-card metric-teal">
+          <span class="metric-label">Total installs</span>
+          <strong id="metricInstalls">—</strong>
+          <small>Anonymous installations seen</small>
+        </article>
+        <article class="metric-card metric-blue">
+          <span class="metric-label">Active today</span>
+          <strong id="metricActiveDay">—</strong>
+          <small>Seen in the last 24 hours</small>
+        </article>
+        <article class="metric-card metric-purple">
+          <span class="metric-label">Active this month</span>
+          <strong id="metricActiveMonth">—</strong>
+          <small>Seen in the last 30 days</small>
+        </article>
+      </section>
+
+      <section class="panel-grid">
+        <article class="panel panel-wide">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">RELEASES</p>
+              <h2>Version adoption</h2>
+            </div>
+            <span id="latestRelease" class="panel-badge">Latest: —</span>
+          </div>
+          <div id="versionRows" class="bar-list">
+            <p class="empty-state">No installation data yet.</p>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">RETENTION</p>
+              <h2>Active devices</h2>
+            </div>
+          </div>
+          <div class="retention-list">
+            <div><span>Last 24 hours</span><strong id="retentionDay">—</strong></div>
+            <div><span>Last 7 days</span><strong id="retentionWeek">—</strong></div>
+            <div><span>Last 30 days</span><strong id="retentionMonth">—</strong></div>
+          </div>
+          <p class="panel-note">A device is active when STB PLAY reports an app-open or heartbeat event.</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">PLAYBACK</p>
+              <h2>Playback health</h2>
+            </div>
+          </div>
+          <div class="health-list">
+            <div><span>Playback starts</span><strong id="playbackStarts">—</strong></div>
+            <div><span>Playback failures</span><strong id="playbackFailures">—</strong></div>
+            <div><span>VLC fallbacks</span><strong id="vlcFallbacks">—</strong></div>
+          </div>
+          <div class="health-meter"><span id="playbackMeter" style="width: 0%"></span></div>
+          <p id="playbackRate" class="panel-note">No playback events yet.</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">PORTALS</p>
+              <h2>Portal refresh health</h2>
+            </div>
+          </div>
+          <div class="health-list">
+            <div><span>Successful loads</span><strong id="portalSuccesses">—</strong></div>
+            <div><span>Failed loads</span><strong id="portalFailures">—</strong></div>
+            <div><span>Crash reports</span><strong id="crashReports">—</strong></div>
+          </div>
+          <p id="portalRate" class="panel-note">No portal events yet.</p>
+        </article>
+
+        <article class="panel panel-wide">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">RECENT EVENTS</p>
+              <h2>Last 7 days</h2>
+            </div>
+            <span class="panel-badge">Anonymous only</span>
+          </div>
+          <div id="eventRows" class="event-grid">
+            <p class="empty-state">No events yet.</p>
+          </div>
+        </article>
+      </section>
+
+      <footer class="privacy-note">
+        <span class="privacy-icon" aria-hidden="true">✓</span>
+        <span>This dashboard is designed for anonymous product metrics. Do not store portal URLs, credentials, MAC addresses, stream URLs, channel names or personal files.</span>
+      </footer>
+    </main>
+  </body>
+</html>

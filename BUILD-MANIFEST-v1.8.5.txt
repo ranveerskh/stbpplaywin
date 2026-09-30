@@ -1,0 +1,15 @@
+STB PLAY v1.8.5 build manifest (superseded)
+Build date: 2026-08-28
+
+This update includes:
+- First-start legal notice with acknowledgement.
+- About, FAQ, privacy, terms, acceptable-use, and provider disclaimer content.
+- Master PIN recovery information in the FAQ.
+- Manual update checker using the published update manifest.
+- Installer/Desktop icon configuration retained for the Windows build.
+- Previous portal progress, playback, quality, navigation, subscription, theme, and history protections retained.
+
+Validation:
+- app.js, server.cjs, and electron/main.cjs pass Node syntax checks.
+- package.json passes JSON validation.
+- ZIP archive integrity verified.

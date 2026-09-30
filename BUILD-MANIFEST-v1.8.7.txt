@@ -1,0 +1,12 @@
+STB PLAY v1.8.7 release manifest
+Build date: 2026-08-28
+
+- Added latest-GitHub-release bootstrapper files under installer/.
+- Installer bootstrapper checks GitHub before downloading the full Windows installer.
+- Retained the manual in-app update checker, legal notice, FAQ, privacy redaction,
+  provider-URL removal, clean branding, and playback fixes.
+
+Validation:
+- Node syntax checks pass for app.js, server.cjs, and electron/main.cjs.
+- package.json and update.json pass JSON validation.
+- ZIP integrity verified after packaging.

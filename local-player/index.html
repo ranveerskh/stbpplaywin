@@ -1,0 +1,529 @@
+<!doctype html>
+<!--
+=========================================================
+ STB PLAY IPTV Player
+ VERSION: 1.8.16 live catalogue fallback, content modes, themes, and update policy
+ File: index.html
+=========================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="app-version" content="1.8.16-live-catalogue-content-modes-update-policy">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>STB PLAY · 1.8.16</title>
+  <link rel="stylesheet" href="styles.css?v=1.8.16-live-catalogue-content-modes-update-policy">
+  <script src="hls.min.js"></script>
+  <script src="content-modes.js?v=1.8.16"></script>
+</head>
+
+<body class="theme-dark">
+
+<header id="topbar" class="topbar" hidden>
+  <div class="brand">
+    <img class="brand-logo" src="assets/stb-play-logo.png" alt="STB PLAY">
+    <div class="brand-copy"><strong>STB PLAY</strong><small>Premium entertainment</small></div>
+  </div>
+  <nav id="modebar" class="modebar" hidden aria-label="Primary navigation">
+    <button class="mode-button active" data-mode="dashboard" type="button"><span class="mode-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Home</span></button>
+    <button class="mode-button" data-mode="live" type="button"><span class="mode-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="m8 3 4 3 4-3M8 10h.01M12 10h.01M16 10h.01"/></svg></span><span>Live TV</span></button>
+    <button class="mode-button" data-mode="content" type="button"><span class="mode-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5M16 4v5M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></span><span>Movies &amp; Series</span></button>
+    <button class="mode-button" data-mode="favorites" type="button"><span class="mode-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></svg></span><span>Favourites</span></button>
+  </nav>
+  <div class="topbar-right">
+    <button id="appFullscreenButton" class="settings-button app-fullscreen-button" type="button">Full screen</button>
+    <button id="settingsButton" class="settings-button" type="button">Settings</button>
+  </div>
+</header>
+
+<main id="setup" class="setup">
+  <form id="setupForm" class="setup-card" autocomplete="off">
+    <img class="setup-logo" src="assets/stb-play-logo.png" alt="STB PLAY">
+    <p class="eyebrow">STB PLAY IPTV Player</p>
+    <h1>Add your portal</h1>
+    <p class="setup-copy">Add a portal to load your IPTV content. You can edit portals later from Settings.</p>
+    <div id="setupError" class="form-error" hidden></div>
+
+    <input id="serviceId" type="hidden" value="custom">
+
+    <label for="portalNickname">Portal nickname</label>
+    <input id="portalNickname" type="text" autocomplete="off" placeholder="My IPTV Portal" required>
+
+    <label for="portalUrl">Portal URL</label>
+    <input id="portalUrl" type="url" autocomplete="off" placeholder="http://example.com" required>
+
+    <label for="mac">MAC Address</label>
+    <input id="mac" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
+      spellcheck="false" maxlength="17" placeholder="02:00:00:00:00:00" required>
+    <small class="field-help">A unique 02-series MAC is generated automatically and remains editable.</small>
+
+    <input id="parentalPin" type="hidden" value="">
+
+    <small class="field-help">The same MAC is reused for additional portals. Change it only if your provider assigned a different one.</small>
+
+    <button id="connectButton" type="submit" class="primary-button">Save &amp; Connect</button>
+    <p class="setup-version">STB PLAY v1.8.16 · Premium IPTV player</p>
+  </form>
+</main>
+
+<main id="dashboardWorkspace" class="dashboard-workspace" hidden>
+  <header id="dashboardHero" class="dashboard-hero">
+    <div id="dashboardHeroBackdrop" class="dashboard-hero-backdrop" aria-hidden="true"></div>
+    <div id="dashboardHeroArtwork" class="dashboard-hero-artwork" aria-hidden="true"></div>
+    <div class="dashboard-hero-copy">
+      <p id="dashboardHeroEyebrow" class="eyebrow">Featured for you</p>
+      <h1 id="dashboardHeroTitle">Welcome back</h1>
+      <div id="dashboardHeroMeta" class="dashboard-hero-meta"></div>
+      <p id="dashboardHeroDescription">Pick up where you left off, discover something new, or jump straight into Live TV.</p>
+      <div class="dashboard-hero-actions">
+        <button id="dashboardHeroPlay" class="hero-play-button" type="button">▶&nbsp; Play now</button>
+        <button id="dashboardHeroFavorite" class="hero-outline-button" type="button">☆&nbsp; Add to favourites</button>
+      </div>
+    </div>
+    <button id="dashboardHeroPrev" class="dashboard-hero-arrow dashboard-hero-prev" type="button" aria-label="Previous featured title">‹</button>
+    <button id="dashboardHeroNext" class="dashboard-hero-arrow dashboard-hero-next" type="button" aria-label="Next featured title">›</button>
+    <div id="dashboardHeroDots" class="dashboard-hero-dots" aria-label="Featured titles"></div>
+  </header>
+  <section id="dashboardActions" class="dashboard-actions" aria-label="Quick actions"></section>
+  <section class="dashboard-section dashboard-rail-section"><div class="section-heading"><h2>Continue Watching</h2><span>Saved on this device</span></div><div id="continueWatching" class="dashboard-rail"></div></section>
+  <section class="dashboard-section dashboard-rail-section"><div class="section-heading"><h2>Recommended for you</h2><span id="recommendedReason">Personalised from your watch history</span></div><div id="recommendedGrid" class="dashboard-rail"></div></section>
+  <section class="dashboard-section latest-shelves-section"><div class="section-heading"><h2>Latest releases for you</h2><span>Fresh titles by language</span></div><div id="latestShelves" class="latest-shelves"></div></section>
+</main>
+
+<main id="favoritesWorkspace" class="dashboard-workspace" hidden>
+  <header class="dashboard-header"><p class="eyebrow">Your library</p><h1>Favourites</h1><p>Channels and titles you saved.</p></header>
+  <section class="dashboard-section"><div class="section-heading"><h2>Favourite channels</h2></div><div id="favoriteChannelsGrid" class="favorites-list"></div></section>
+  <section class="dashboard-section"><div class="section-heading"><h2>Favourite titles</h2></div><div id="favoriteMediaGrid" class="dashboard-grid"></div></section>
+</main>
+
+<main id="workspace" class="workspace" hidden>
+  <section class="panel categories-panel">
+    <div class="heading">
+      <div><p>Live TV</p><strong>Categories</strong></div>
+      <div class="heading-actions">
+        <span id="groupCount">0 groups</span>
+        <button id="editGroupsButton" class="small-action-button" type="button">Show / edit</button>
+      </div>
+    </div>
+    <div id="categories" class="scroll-list"></div>
+  </section>
+
+  <section class="panel channels-panel">
+    <div class="heading channels-heading">
+      <div><p>Channels</p><strong id="channelCount">0 channels</strong></div>
+      <div class="channel-heading-tools">
+        <input id="search" type="search" placeholder="Search channels..." autocomplete="off">
+        <button id="editChannelsButton" class="small-action-button" type="button">Show / edit</button>
+      </div>
+    </div>
+    <div id="channels" class="scroll-list channel-list"></div>
+  </section>
+
+  <section class="player-column">
+    <article id="playerContainer" class="player-card player-container">
+      <div class="video-stage">
+        <video id="video" playsinline></video>
+        <div id="placeholder" class="placeholder">
+          <span>Play</span><strong>Select a channel</strong>
+          <p>Choose a channel from the list to begin watching Live TV.</p>
+        </div>
+        <div id="videoLoading" class="loading" hidden><b></b><p>Loading stream...</p></div>
+        <div id="customControls" class="custom-controls" hidden>
+          <div class="controls-top"><h2 id="controlTitle">STB PLAY</h2><span id="controlEpg">Live TV</span></div>
+          <div class="controls-bottom">
+            <div id="progressContainer" class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
+            <div class="controls-buttons">
+              <div class="controls-left">
+                <button id="playPauseBtn" class="control-btn" type="button" aria-label="Play or pause">Pause</button>
+                <div class="volume-container">
+                  <button id="muteBtn" class="control-btn" type="button" aria-label="Mute">Vol</button>
+                  <input id="volumeSlider" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+                </div>
+                <span id="timeDisplay" class="time-display">LIVE</span>
+              </div>
+              <div class="controls-right">
+                <button id="fullscreenBtn" class="control-btn" type="button" aria-label="Fullscreen">Full</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="now-playing"><div><p id="playerModeBadge">LIVE</p><h1 id="nowPlaying">Nothing playing</h1></div></div>
+    </article>
+    <div id="notice" class="notice" hidden>
+      <span id="noticeText"></span>
+      <button id="playInVlcButton" class="notice-action" type="button" hidden>Play in VLC</button>
+    </div>
+  </section>
+</main>
+
+<!-- Movies workspace. Existing IDs are preserved for app.js compatibility. -->
+<main id="vodWorkspace" class="vod-workspace" hidden>
+  <aside class="vod-sidebar">
+    <div class="vod-sidebar-header"><p>On Demand</p><h2>Movies &amp; Series</h2></div>
+    <div class="vod-search-box"><input id="vodSearch" type="search" placeholder="Search movies &amp; series..." autocomplete="off"></div>
+    <div id="vodCategories" class="vod-category-list"><p class="list-note">Loading categories...</p></div>
+  </aside>
+
+  <section class="vod-main">
+    <section id="vodPlayerSection" class="vod-player-section" aria-label="Video player" hidden>
+      <div id="vodPlayerContainer" class="vod-player-container">
+        <video id="vodVideo" playsinline></video>
+        <div id="vodVideoLoading" class="loading" hidden><b></b><p>Loading movie...</p></div>
+        <div id="vodNotice" class="notice playback-notice" hidden>
+          <span id="vodNoticeText"></span>
+          <button id="vodPlayInVlcButton" class="notice-action" type="button" hidden>Play in VLC</button>
+        </div>
+        <div id="vodPlayerControls" class="custom-controls" hidden>
+          <div class="controls-top"><h2 id="vodControlTitle">Movie</h2><span>On Demand</span></div>
+          <div class="controls-bottom">
+            <div id="vodProgressContainer" class="progress-container"><div id="vodProgressBar" class="progress-bar"></div></div>
+            <div class="controls-buttons">
+              <div class="controls-left">
+                <button id="vodPlayPauseBtn" class="control-btn" type="button">Pause</button>
+                <div class="volume-container">
+                  <button id="vodMuteBtn" class="control-btn" type="button">Vol</button>
+                  <input id="vodVolumeSlider" type="range" min="0" max="1" step="0.05" value="1">
+                </div>
+                <span id="vodTimeDisplay" class="time-display">0:00 / 0:00</span>
+              </div>
+              <div class="controls-right">
+                <select id="vodSubtitleSelect" class="vod-subtitle-select" aria-label="Subtitles" hidden>
+                  <option value="">Subtitles off</option>
+                </select>
+                <button id="closeVodPlayerButton" class="control-btn vod-close-player" type="button" aria-label="Exit player">Back</button>
+                <button id="vodFullscreenBtn" class="control-btn" type="button" aria-label="Toggle video fullscreen">Full</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <header class="vod-main-header">
+      <div><p class="eyebrow">Browse your provider</p><h1 id="vodCategoryTitle">Movies &amp; Series</h1><p id="vodCategoryMeta">Choose a category from the left.</p></div>
+    </header>
+    <div id="vodGrid" class="vod-grid"></div>
+    <div id="vodLoadMore" class="vod-load-more">
+      <div id="vodLoadSpinner" class="vod-load-spinner" hidden><b></b><span>Loading more...</span></div>
+      <button id="vodLoadMoreButton" class="load-more-button" type="button">Load more</button>
+      <p id="vodEndMessage" class="list-note" hidden>You reached the end of this category.</p>
+    </div>
+  </section>
+</main>
+
+<!-- Series browser uses the same unified Movies & Series section. -->
+<main id="seriesWorkspace" class="vod-workspace content-subworkspace" hidden>
+  <aside class="vod-sidebar">
+    <div class="vod-sidebar-header"><p>On Demand</p><h2>Series</h2></div>
+    <div class="vod-search-box"><input id="seriesSearch" type="search" placeholder="Search series..." autocomplete="off"></div>
+    <div id="seriesCategories" class="vod-category-list"><p class="list-note">Loading series categories...</p></div>
+  </aside>
+  <section class="vod-main">
+    <section id="seriesPlayerSection" class="vod-player-section" hidden>
+      <div id="seriesPlayerContainer" class="vod-player-container">
+        <video id="seriesVideo" playsinline></video>
+        <div id="seriesVideoLoading" class="loading" hidden><b></b><p>Loading episode...</p></div>
+        <button id="closeSeriesPlayerButton" class="close-btn" type="button" title="Close player"><span class="close-icon" aria-hidden="true">×</span></button>
+      </div>
+    </section>
+    <header class="vod-main-header">
+    <div><p class="eyebrow">Browse Series</p><h1 id="seriesCategoryTitle">Series</h1><p id="seriesCategoryMeta">Choose a category from the left.</p></div>
+    </header>
+    <div id="seriesGrid" class="vod-grid"></div>
+    <div id="seriesLoadMore" class="vod-load-more">
+      <div id="seriesLoadSpinner" class="vod-load-spinner" hidden><b></b><span>Loading more...</span></div>
+      <p id="seriesEndMessage" class="list-note" hidden>You reached the end of this category.</p>
+    </div>
+  </section>
+</main>
+
+<div id="vodModal" class="modal-overlay" hidden>
+  <div class="modal-content vod-modal-box">
+    <button id="vodClose" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
+    <div class="modal-split">
+      <div id="vodModalPoster" class="modal-poster"></div>
+      <div class="modal-details">
+        <p class="eyebrow">STB PLAY On Demand</p>
+        <h2 id="vodModalTitle">Movie</h2>
+        <p id="vodModalMeta" class="meta-text"></p>
+        <p id="vodModalDescription" class="desc-text"></p>
+        <div class="vod-actions">
+          <button id="vodPlayButton" class="play-btn" type="button">Play</button>
+          <button id="vodResumeButton" class="play-btn resume-btn" type="button" hidden>Resume</button>
+          <button id="vodFavoriteButton" class="play-btn resume-btn" type="button">Add to favourites</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Movie/episode quality selection. Raw provider commands never enter the browser. -->
+<div id="qualityModal" class="modal-overlay" hidden>
+  <div class="modal-content quality-modal-box">
+    <button id="qualityClose" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
+    <p class="eyebrow">Playback quality</p>
+    <h2 id="qualityModalTitle">Choose quality</h2>
+    <p id="qualityModalDescription" class="desc-text">Choose a quality before playback.</p>
+    <div id="qualityOptions" class="quality-options">
+      <p class="list-note">Loading quality options…</p>
+    </div>
+  </div>
+</div>
+
+<!-- Series details modal -->
+<div id="seriesModal" class="modal-overlay" hidden>
+  <div class="modal-content vod-modal-box series-modal-box">
+    <button id="seriesClose" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
+    <div class="modal-split">
+      <div id="seriesModalPoster" class="modal-poster"></div>
+      <div class="modal-details">
+        <p class="eyebrow">STB PLAY Series</p>
+        <h2 id="seriesModalTitle">Series</h2>
+        <p id="seriesModalMeta" class="meta-text"></p>
+        <p id="seriesModalDescription" class="desc-text"></p>
+        <p class="list-note series-flow-note">Choose a season, then an episode, then playback quality.</p>
+        <div class="settings-section">
+          <label for="seriesSeasonSelect">Season</label>
+          <select id="seriesSeasonSelect"><option value="">Select season</option></select>
+        </div>
+        <div class="vod-actions series-actions">
+          <button id="seriesResumeButton" class="play-btn series-resume-btn" type="button" hidden>Resume</button>
+          <button id="seriesFavoriteButton" class="play-btn resume-btn" type="button">Add to favourites</button>
+        </div>
+        <div id="seriesEpisodes" class="series-episodes">
+          <p class="list-note">Select a season to see episodes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pinModal" class="modal-overlay" hidden>
+  <div class="modal-content pin-modal-box">
+    <button id="closePinModal" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
+    <div class="pin-lock-icon">PIN</div>
+    <p class="eyebrow">Parental Controls</p>
+    <h2>Protected content</h2>
+    <p class="pin-description">Enter your parental PIN to continue.</p>
+    <form id="pinUnlockForm" autocomplete="off">
+      <input id="unlockPin" class="pin-input" type="password" inputmode="numeric" maxlength="4"
+        pattern="[0-9]{4}" placeholder="4-digit PIN" autocomplete="off" required>
+      <div id="unlockPinError" class="form-error pin-error" hidden></div>
+      <button id="unlockPinButton" class="primary-button" type="submit">Unlock</button>
+    </form>
+  </div>
+</div>
+
+<div id="forgotPinModal" class="modal-overlay" hidden>
+  <form id="forgotPinForm" class="modal-content pin-modal-box forgot-pin-box" autocomplete="off">
+    <button id="closeForgotPinModal" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
+    <div class="pin-lock-icon">?</div>
+    <p class="eyebrow">PIN recovery</p>
+    <h2>Forgot parental PIN?</h2>
+    <p class="pin-description">Enter the recovery code you saved when the PIN was created, then choose a new 4-digit PIN.</p>
+    <label for="recoveryCodeInput">Recovery code</label>
+    <input id="recoveryCodeInput" class="pin-input recovery-code-input" type="password" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" placeholder="8-digit code" required>
+    <label for="recoveryNewPin">New parental PIN</label>
+    <input id="recoveryNewPin" class="pin-input" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4-digit PIN" required>
+    <div id="recoveryPinError" class="form-error pin-error" hidden></div>
+    <button id="recoverPinButton" class="primary-button" type="submit">Reset PIN</button>
+  </form>
+</div>
+
+<div id="settingsModal" class="modal-overlay" hidden>
+  <div class="modal-content settings-box">
+    <button id="closeSettingsButton" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
+    <p class="eyebrow">STB PLAY</p><h2>App Settings</h2>
+    <section class="settings-subscription-card">
+      <div class="settings-subscription-mark">✦</div>
+      <div class="settings-subscription-copy">
+        <p class="eyebrow">Subscription</p>
+        <h3 id="subscriptionPlan">Checking your subscription…</h3>
+        <p id="subscriptionExpiry">Expiry date: Checking provider…</p>
+      </div>
+      <span id="subscriptionStatus" class="subscription-status">Checking</span>
+    </section>
+    <div class="settings-page-grid">
+    <section class="settings-section settings-sources">
+      <h3>Content Sources</h3>
+      <p>Add, edit, switch, or remove IPTV portals. The active portal supplies Live TV, Movies, and Series.</p>
+      <div id="portalList" class="portal-list"></div>
+      <button id="addPortalButton" class="secondary-wide-button" type="button">Add portal</button>
+    </section>
+    <section class="settings-section settings-appearance">
+      <h3>Appearance</h3><label for="themeSelect">App Theme</label>
+      <select id="themeSelect"><option value="dark">Dark Theme</option><option value="light">Light Theme</option><option value="midnight">Midnight Theme</option></select>
+    </section>
+    <section class="settings-section settings-playback">
+      <h3>Playback</h3>
+      <label for="playerSelect">Default player</label>
+      <select id="playerSelect">
+        <option value="auto">Auto (recommended)</option>
+        <option value="internal">Internal player</option>
+        <option value="vlc">VLC</option>
+      </select>
+      <p>Auto uses the built-in player first and keeps VLC available for unsupported codecs.</p>
+    </section>
+    <section class="settings-section settings-language">
+      <h3>Language</h3><label for="languageSelect">App Language</label>
+      <select id="languageSelect"><option value="en">English</option><option value="pa">Punjabi</option><option value="hi">Hindi</option></select>
+    </section>
+    <section class="settings-section settings-audio">
+      <h3>Audio &amp; Subtitles</h3>
+      <label for="subtitleSelect">Subtitle preference</label>
+      <select id="subtitleSelect"><option value="off">Off</option><option value="auto">Auto</option><option value="en">English</option><option value="pa">Punjabi</option><option value="hi">Hindi</option></select>
+      <p>Online subtitles are off by default. When the provider supplies English, Punjabi, or Hindi subtitle files, choose a preference and the player will load them for the current VOD title.</p>
+    </section>
+    <section class="settings-section settings-content">
+      <h3>Content</h3>
+      <p>Content refreshes automatically once every 24 hours. Use the button below whenever you want the latest catalogue immediately.</p>
+      <div class="input-row"><button id="refreshContentButton" type="button">Refresh content</button><button id="clearCacheButton" type="button">Clear local cache</button></div>
+      <p id="localCatalogueStatus" class="settings-notice">Local catalogue status is not loaded yet.</p>
+      <button id="loadLocalCatalogueButton" class="secondary-wide-button" type="button">Load local catalogue</button>
+      <span id="contentNotice" class="settings-notice" hidden></span>
+    </section>
+    <section class="settings-section settings-history">
+      <h3>History</h3>
+      <p>Remove one title with the × on its Home card, or clear all saved progress here.</p>
+      <button id="clearHistoryButton" class="secondary-wide-button" type="button">Clear watch history</button>
+    </section>
+    <section class="settings-section settings-cast">
+      <h3>Cast &amp; share</h3>
+      <p id="castingStatus">Checking supported casting options…</p>
+      <button id="shareButton" class="secondary-wide-button" type="button" hidden>Share STB PLAY</button>
+    </section>
+    <section class="settings-section settings-analytics">
+      <h3>Anonymous analytics</h3>
+      <p>Help improve STB PLAY with anonymous install, update, playback, and crash events. No MAC address, PIN, portal URL, stream link, channel name, or personal file is sent.</p>
+      <label class="checkbox-row" for="analyticsEnabled"><input id="analyticsEnabled" type="checkbox" checked> Allow anonymous app health events</label>
+      <p class="field-help">You can turn this off at any time on this device.</p>
+    </section>
+    <section class="settings-section settings-parental">
+      <h3>Parental Controls</h3>
+      <p>Protect restricted content with a 4-digit PIN. Keep the recovery code somewhere safe.</p>
+      <label for="contentModeSelect">Content mode</label>
+      <select id="contentModeSelect">
+        <option value="all">All content</option>
+        <option value="adult-free">Hide restricted content</option>
+        <option value="adult-only">Restricted content only · PIN required</option>
+      </select>
+      <p class="field-help">Restricted content stays hidden until your PIN is entered in each app session.</p>
+      <button id="unlockContentModeButton" class="secondary-wide-button" type="button" hidden>Unlock restricted view</button>
+      <label for="newParentalPin">Change Parental PIN</label>
+      <div class="input-row">
+        <input id="currentParentalPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="Current 4-digit PIN">
+        <input id="newParentalPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="New 4-digit PIN">
+        <button id="updatePinButton" type="button">Update PIN</button>
+      </div>
+      <div class="input-row recovery-actions">
+        <button id="generateRecoveryCodeButton" class="secondary-wide-button" type="button">Generate recovery code</button>
+        <button id="forgotParentalPinButton" class="secondary-wide-button" type="button">Forgot PIN?</button>
+      </div>
+      <div id="recoveryCodePanel" class="recovery-code-panel" hidden>
+        <small>Save this recovery code. It is shown only after it is generated.</small>
+        <strong id="recoveryCodeValue"></strong>
+      </div>
+      <p class="field-help">If the PIN and recovery code are both lost, the app must be reset and portal details will need to be entered again.</p>
+      <span id="pinNotice" class="settings-notice" hidden></span>
+    </section>
+    <section class="settings-section settings-about">
+      <h3>About, FAQ &amp; Policies</h3>
+      <p>STB PLAY is a player application. It does not sell, provide, host, or distribute IPTV subscriptions or media.</p>
+      <div class="faq-list">
+        <details><summary>What does STB PLAY provide?</summary><p>Only the player software. You must use a portal and content source that you are authorised to access.</p></details>
+        <details><summary>Why is a channel or movie not playing?</summary><p>Playback depends on your provider, internet connection, stream format, and server availability. Try another quality or VLC when available, then contact your authorised provider.</p></details>
+        <details><summary>What if I forget the parental PIN?</summary><p>Use the saved 8-digit recovery code from Settings. A new recovery code is issued after recovery. STB PLAY does not contain a shared master PIN.</p></details>
+        <details><summary>Privacy policy</summary><p>Portal details, MAC address, preferences, favourites, and watch progress are stored locally on this device. Diagnostics are opt-in: collection starts only after you press Start fresh test. Reports exclude your MAC address, PIN, tokens, cookies, provider hostname, channel/title names, and full stream links. STB PLAY does not intentionally sell personal data.</p></details>
+        <details><summary>Terms and acceptable use</summary><p>You are responsible for using lawful, authorised portals and content. Do not use STB PLAY to access, copy, redistribute, or share content without permission. The software is provided as-is and availability is not guaranteed.</p></details>
+      </div>
+      <div class="update-panel"><div><strong>Application updates</strong><small id="updateStatus">Check whether a newer STB PLAY version is available.</small></div><div class="update-actions"><button id="checkUpdatesButton" class="secondary-wide-button" type="button">Check for updates</button><button id="downloadUpdateButton" class="primary-button" type="button" hidden>Download &amp; install</button></div></div>
+    </section>
+    <section class="settings-section settings-diagnostic">
+      <h3>Playback diagnostic</h3>
+      <p>Diagnostics are off by default. Press Start fresh test only when support asks. Reproduce the problem, download the report, and attach the JSON file to your support message. It records playback timing and error types, not your MAC, PIN, tokens, cookies, provider hostname, or full stream links.</p>
+      <div class="input-row">
+        <button id="resetDiagnosticButton" type="button">Start fresh test</button>
+        <button id="downloadDiagnosticButton" type="button">Download report</button>
+      </div>
+      <span id="diagnosticNotice" class="settings-notice" hidden></span>
+    </section>
+    <section class="settings-section settings-portal-config warning-section">
+      <h3>Portal Configuration</h3>
+      <p>Portal details are managed above. Use this only to return to the first-portal screen.</p>
+      <button id="resetPortalButton" class="danger-btn" type="button">Manage portals</button>
+    </section>
+    </div>
+    <p class="settings-version">STB PLAY v1.8.16 · Premium Home + personalised recommendations</p>
+  </div>
+</div>
+
+<div id="portalEditorModal" class="modal-overlay" hidden>
+  <div class="modal-content settings-box portal-editor-box">
+    <button id="closePortalEditor" class="close-btn" type="button" aria-label="Close"><span class="close-icon" aria-hidden="true">×</span></button>
+    <p class="eyebrow">Content Sources</p><h2 id="portalEditorTitle">Add Portal</h2>
+    <form id="portalEditorForm" autocomplete="off">
+      <input id="portalEditorId" type="hidden">
+      <label for="portalEditorNickname">Portal nickname</label>
+      <input id="portalEditorNickname" type="text" placeholder="My Portal" required>
+      <label for="portalEditorUrl">Portal URL</label>
+      <input id="portalEditorUrl" type="url" placeholder="http://example.com" required>
+      <label for="portalEditorMac">MAC address</label>
+  <input id="portalEditorMac" type="text" inputmode="text" maxlength="17" placeholder="02:00:00:00:00:00" required>
+      <p class="field-help">New portals reuse the existing MAC by default. It remains fully editable.</p>
+      <button class="primary-button" type="submit">Save portal</button>
+      <span id="portalEditorNotice" class="settings-notice" hidden></span>
+    </form>
+  </div>
+</div>
+
+<div id="firstStartWarningModal" class="modal-overlay" hidden>
+  <div class="modal-content first-start-warning-box">
+    <div class="warning-symbol" aria-hidden="true">!</div>
+    <p class="eyebrow">Important notice</p>
+    <h2>Before you continue</h2>
+    <p class="desc-text">STB PLAY is only a media player. We do not provide, sell, host, activate, or distribute IPTV subscriptions, channels, movies, or series. You must use only authorised services and content.</p>
+    <p class="desc-text">You are responsible for complying with the laws and terms that apply to the services you connect.</p>
+    <button id="firstStartReadButton" class="primary-button" type="button">I have read and understand</button>
+  </div>
+</div>
+
+<div id="portalLoadingModal" class="modal-overlay portal-loading-overlay" hidden>
+  <div class="modal-content portal-loading-box">
+    <div class="portal-loading-brand"><img src="assets/stb-play-logo.png" alt=""></div>
+    <p class="eyebrow">Connecting to portal</p>
+    <h2 id="portalLoadingTitle">Loading portal</h2>
+    <p id="portalLoadingStatus" class="desc-text">Connecting…</p>
+    <div class="portal-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="portalProgressBar"></span></div>
+    <div class="portal-progress-meta"><span id="portalProgressLabel">0%</span><span id="portalProgressPhase">Starting</span></div>
+    <p id="portalLoadingError" class="portal-loading-error" hidden></p>
+    <button id="portalLoadingBackButton" class="secondary-wide-button" type="button" hidden>Back to settings</button>
+  </div>
+</div>
+
+<aside id="updateToast" class="update-toast" role="status" aria-live="polite" hidden>
+  <button id="dismissUpdateToast" class="update-toast-close" type="button" aria-label="Dismiss update notice">×</button>
+  <p class="eyebrow">Application update</p>
+  <strong id="updateToastTitle">A new STB PLAY version is available</strong>
+  <p id="updateToastText">Download the latest installer.</p>
+  <button id="updateToastDownload" class="primary-button" type="button">Download &amp; install</button>
+</aside>
+
+<div id="updateRequiredOverlay" class="update-required-overlay" role="dialog" aria-modal="true" aria-labelledby="updateRequiredTitle" hidden>
+  <div class="update-required-card">
+    <p class="eyebrow">Application update required</p>
+    <h1 id="updateRequiredTitle">Update STB PLAY to continue</h1>
+    <p id="updateRequiredStatus">Checking the current version policy…</p>
+    <div class="update-required-actions">
+      <button id="updateRequiredRetry" class="secondary-wide-button" type="button">Retry check</button>
+      <button id="updateRequiredDownload" class="primary-button" type="button" hidden>Download &amp; install</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=1.8.16-live-catalogue-content-modes-update-policy"></script>
+</body>
+</html>

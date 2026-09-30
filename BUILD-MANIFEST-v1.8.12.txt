@@ -1,0 +1,19 @@
+STB PLAY v1.8.12 MAC reuse, VLC fallback and installer update release
+
+This update preserves the v1.8.11 portal progress and direct update flow and
+adds the final small fixes requested for the Windows app.
+
+Included fixes:
+- New MAC IDs use a unique locally administered 02 series.
+- Additional portal profiles reuse the existing MAC by default. Users can
+  still edit the MAC before saving a portal.
+- A successful portal load holds the completed 100% state for one second,
+  then opens Home instead of exposing Settings.
+- Auto playback opens VLC after three seconds when Live TV is still buffering
+  or cannot be decoded. If the provider returns no link, the app shows only a
+  simple temporary-unavailable message.
+- Windows update download now downloads the trusted GitHub installer to a
+  temporary folder, starts the installer automatically, and closes STB PLAY.
+
+The expected release asset is:
+Netplus-IPTV-Player-Setup-1.8.12.exe
