@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.16 strict search, restored live parental locking, subtitles, recovery and analytics
+ VERSION: 1.8.17 strict search, restored live parental locking, subtitles, recovery and analytics
  File: server.cjs
 =========================================================
 */
@@ -10,7 +10,7 @@ const http = require("node:http");
 const dns = require("node:dns");
 const fs = require("node:fs");
 const path = require("node:path");
-const { randomBytes, scryptSync, timingSafeEqual } = require("node:crypto");
+const { randomBytes, randomUUID, scryptSync, timingSafeEqual } = require("node:crypto");
 const { Readable } = require("node:stream");
 const { spawn, spawnSync } = require("node:child_process");
 const {
@@ -22,6 +22,11 @@ const {
   DEFAULT_RELEASE_REPOSITORY,
   normalizeUpdateManifest,
 } = require("./update-policy.cjs");
+const {
+  DEFAULT_REGISTRATION_API,
+  createRegistrationPayload,
+  normalizeRegistrationApiUrl,
+} = require("./registration-client.cjs");
 
 /* IPTV/CDN hosts used by the provider can publish broken IPv6 routes. */
 try { dns.setDefaultResultOrder("ipv4first"); } catch {}
@@ -33,7 +38,10 @@ const PORT = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPo
   : 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.16";
+const APP_VERSION = "1.8.17";
+const REGISTRATION_API = normalizeRegistrationApiUrl(process.env.STB_PLAY_REGISTRATION_API || DEFAULT_REGISTRATION_API);
+const REGISTRATION_PATH = path.join(path.dirname(CONFIG_PATH), "stb-play-registration.json");
+const REGISTRATION_HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000;
 const UPDATE_REPOSITORY = String(process.env.STB_PLAY_RELEASE_REPOSITORY || DEFAULT_RELEASE_REPOSITORY).trim();
 const UPDATE_MANIFEST_URL = String(
   process.env.STB_PLAY_UPDATE_MANIFEST_URL ||
@@ -41,7 +49,7 @@ const UPDATE_MANIFEST_URL = String(
 ).trim();
 const DIAGNOSTIC_PATH = path.join(
   path.dirname(CONFIG_PATH),
-  "netplus-diagnostics-v1.8.16.json"
+  "netplus-diagnostics-v1.8.17.json"
 );
 const MAX_DIAGNOSTIC_EVENTS = 450;
 const DEFAULT_ANALYTICS_ENDPOINT = "https://us-central1-stb-play-analytics.cloudfunctions.net/analyticsEvents";
@@ -426,6 +434,106 @@ function clearAnalyticsQueue() {
   analyticsQueue = [];
   persistAnalyticsQueue();
   return { cleared: true };
+}
+
+/* Registration stores only the license key and a random stable device ID.
+   Portal paths, query strings, credentials, and content names are never sent. */
+function readRegistration() {
+  let saved = {};
+  try { saved = JSON.parse(fs.readFileSync(REGISTRATION_PATH, "utf8")); } catch {}
+  if (!/^[0-9a-f-]{36}$/i.test(String(saved.deviceId || ""))) saved.deviceId = randomUUID();
+  return saved;
+}
+
+function persistRegistration(registration) {
+  try {
+    fs.mkdirSync(path.dirname(REGISTRATION_PATH), { recursive: true });
+    fs.writeFileSync(REGISTRATION_PATH, `${JSON.stringify(registration, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  } catch {
+    throw new PlayerError("Could not save registration on this device.", 500);
+  }
+}
+
+function activePortalUrl() {
+  const portals = listPortalProfiles();
+  return portals.portals.find((portal) => portal.id === portals.activePortalId)?.portalUrl || "";
+}
+
+function registrationPayload(registration) {
+  return createRegistrationPayload({
+    licenseKey: registration.licenseKey,
+    deviceId: registration.deviceId,
+    platform: "windows",
+    appVersion: APP_VERSION,
+    portalUrl: activePortalUrl(),
+  });
+}
+
+async function callRegistrationApi(action, payload) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(`${REGISTRATION_API}/api/${action}`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result?.ok === false || result?.success === false || result?.error) {
+      throw new PlayerError(`Registration service rejected the request (HTTP ${response.status}).`, response.status || 502);
+    }
+    return result;
+  } catch (error) {
+    if (error instanceof PlayerError) throw error;
+    throw new PlayerError("Registration service could not be reached. Check your connection and retry.", 503);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function publicRegistrationStatus(registration = readRegistration()) {
+  return {
+    registered: Boolean(registration.registeredAt),
+    registeredAt: registration.registeredAt || null,
+    lastHeartbeatAt: registration.lastHeartbeatAt || null,
+    deviceId: registration.deviceId,
+  };
+}
+
+async function registerDevice(licenseKey) {
+  const registration = readRegistration();
+  const cleanKey = String(licenseKey || "").trim();
+  if (!cleanKey || cleanKey.length > 256) throw new PlayerError("Enter a valid registration key.", 400);
+  registration.licenseKey = cleanKey;
+  registration.registeredAt = "";
+  registration.lastHeartbeatAt = "";
+  persistRegistration(registration);
+  const payload = registrationPayload(registration);
+  await callRegistrationApi("register", payload);
+  registration.registeredAt = new Date().toISOString();
+  persistRegistration(registration);
+  let heartbeat = false;
+  try {
+    await callRegistrationApi("heartbeat", payload);
+    registration.lastHeartbeatAt = new Date().toISOString();
+    persistRegistration(registration);
+    heartbeat = true;
+  } catch {
+    /* Registration remains valid; the next scheduled heartbeat retries. */
+  }
+  return { ...publicRegistrationStatus(registration), heartbeat };
+}
+
+async function sendRegistrationHeartbeat() {
+  const registration = readRegistration();
+  if (!registration.registeredAt || !registration.licenseKey) {
+    throw new PlayerError("Register this device before sending a heartbeat.", 409);
+  }
+  await callRegistrationApi("heartbeat", registrationPayload(registration));
+  registration.lastHeartbeatAt = new Date().toISOString();
+  persistRegistration(registration);
+  return publicRegistrationStatus(registration);
 }
 
 function resetDiagnostics() {
@@ -3785,7 +3893,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.16.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.17.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
@@ -4280,6 +4388,19 @@ async function handle(req, res) {
     } catch (error) {
       return json(res, error.status || 500, { error: error.message || "Subscription is unavailable." });
     }
+  }
+
+  if (req.method === "GET" && requestUrl.pathname === "/api/registration/status") {
+    return json(res, 200, publicRegistrationStatus());
+  }
+
+  if (req.method === "POST" && requestUrl.pathname === "/api/registration/register") {
+    const body = await readJson(req);
+    return json(res, 200, { ok: true, ...await registerDevice(body.licenseKey) });
+  }
+
+  if (req.method === "POST" && requestUrl.pathname === "/api/registration/heartbeat") {
+    return json(res, 200, { ok: true, ...await sendRegistrationHeartbeat() });
   }
 
   if (req.method === "POST" && requestUrl.pathname === "/api/portals") {

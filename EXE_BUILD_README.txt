@@ -1,4 +1,4 @@
-STB PLAY Windows — v1.8.16
+STB PLAY Windows — v1.8.17
 
 PROJECT SCOPE
 This repository contains the Windows desktop application and its private
@@ -13,18 +13,17 @@ npm. From this directory run:
   npm test
   npm run desktop:make
 
-The NSIS installer is written to release/Netplus-IPTV-Player-Setup-1.8.16.exe.
+The NSIS installer is written to release/Netplus-IPTV-Player-Setup-1.8.17.exe.
 The test suite checks the application sources, update policy rules, and the
 local portal integration flow. A successful Linux source check does not replace
 a Windows installer build, Authenticode verification, or physical-device test.
 
 RELEASE SIGNING
-A tag release is allowed only after Windows tests and packaging pass and the
-installer has a valid Authenticode signature. Configure the GitHub Actions
-secrets WINDOWS_CERTIFICATE_B64 and WINDOWS_CERTIFICATE_PASSWORD with the
-release certificate before creating a release tag. The release job signs and
-verifies the installer before uploading it. Without those secrets the release
-workflow stops before building or publishing an installer.
+The release workflow runs tests and builds the installer before publishing.
+Signing is optional. If WINDOWS_CERTIFICATE_B64 and
+WINDOWS_CERTIFICATE_PASSWORD are configured, the job signs and verifies the
+installer; otherwise it publishes an unsigned installer and Windows may show
+an Unknown publisher warning.
 
 UPDATE POLICY
 The default manifest is:
@@ -48,10 +47,12 @@ build; do not uninstall the application first. The installer does not clear the
 userData folder. Back up important settings before testing any installer.
 
 DATA SERVICE STATUS
-The current Firebase service is anonymous product-health analytics, not a
-registration-key service. It does not implement shared Android/Windows keys or
-the requested cross-platform device dashboard. No shared registration backend
-is configured by this Windows project, so none is fabricated here.
+Windows registration connects to the Firebase appApi `/api/register` and
+`/api/heartbeat` endpoints. It sends the registration key, stable random device
+ID, Windows platform, app version, and active portal hostname only; it does not
+send portal paths/query strings, access tokens, or watched titles. Product
+health analytics remains separate and opt-in. No admin dashboard is included
+in this Windows project.
 
 MANUAL WINDOWS CHECKS
 1. Install over an existing build and confirm the saved portal, favourites,

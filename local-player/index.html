@@ -2,7 +2,7 @@
 <!--
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.16 live catalogue fallback, content modes, themes, and update policy
+ VERSION: 1.8.17 live catalogue fallback, content modes, themes, and update policy
  File: index.html
 =========================================================
 -->
@@ -10,14 +10,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="app-version" content="1.8.16-live-catalogue-content-modes-update-policy">
+  <meta name="app-version" content="1.8.17-live-catalogue-content-modes-update-policy">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>STB PLAY · 1.8.16</title>
-  <link rel="stylesheet" href="styles.css?v=1.8.16-live-catalogue-content-modes-update-policy">
+  <title>STB PLAY · 1.8.17</title>
+  <link rel="stylesheet" href="styles.css?v=1.8.17-live-catalogue-content-modes-update-policy">
   <script src="hls.min.js"></script>
-  <script src="content-modes.js?v=1.8.16"></script>
+  <script src="content-modes.js?v=1.8.17"></script>
 </head>
 
 <body class="theme-dark">
@@ -65,7 +65,7 @@
     <small class="field-help">The same MAC is reused for additional portals. Change it only if your provider assigned a different one.</small>
 
     <button id="connectButton" type="submit" class="primary-button">Save &amp; Connect</button>
-    <p class="setup-version">STB PLAY v1.8.16 · Premium IPTV player</p>
+    <p class="setup-version">STB PLAY v1.8.17 · Premium IPTV player</p>
   </form>
 </main>
 
@@ -402,6 +402,16 @@
       <label class="checkbox-row" for="analyticsEnabled"><input id="analyticsEnabled" type="checkbox" checked> Allow anonymous app health events</label>
       <p class="field-help">You can turn this off at any time on this device.</p>
     </section>
+    <section class="settings-section settings-registration">
+      <h3>Device registration</h3>
+      <p>Registration sends your key, a device ID, platform, app version, and the active portal hostname. Portal paths and URL query strings are excluded.</p>
+      <label for="registrationKey">Registration key</label>
+      <div class="input-row">
+        <input id="registrationKey" type="password" autocomplete="off" maxlength="256" placeholder="Enter registration key">
+        <button id="registerDeviceButton" type="button">Register device</button>
+      </div>
+      <p id="registrationStatus" class="settings-notice" role="status">Checking registration…</p>
+    </section>
     <section class="settings-section settings-parental">
       <h3>Parental Controls</h3>
       <p>Protect restricted content with a 4-digit PIN. Keep the recovery code somewhere safe.</p>
@@ -457,7 +467,7 @@
       <button id="resetPortalButton" class="danger-btn" type="button">Manage portals</button>
     </section>
     </div>
-    <p class="settings-version">STB PLAY v1.8.16 · Premium Home + personalised recommendations</p>
+    <p class="settings-version">STB PLAY v1.8.17 · Premium Home + personalised recommendations</p>
   </div>
 </div>
 
@@ -524,6 +534,6 @@
   </div>
 </div>
 
-<script src="app.js?v=1.8.16-live-catalogue-content-modes-update-policy"></script>
+<script src="app.js?v=1.8.17-live-catalogue-content-modes-update-policy"></script>
 </body>
 </html>

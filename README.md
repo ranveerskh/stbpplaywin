@@ -12,7 +12,7 @@ npm test
 npm run desktop:make
 ```
 
-`npm test` runs JavaScript syntax checks, update-policy/content-mode unit tests, and local portal/analytics integration tests. The Windows installer is produced in `release/` and is never published by a local build.
+`npm test` runs JavaScript syntax checks, update-policy/content-mode/registration unit tests, and local portal/analytics integration tests. The Windows installer is produced in `release/` and is never published by a local build.
 
 ## Updates and local data
 
@@ -22,8 +22,8 @@ The Electron app identity (`ca.netplus.iptvplayer` / `STB PLAY`) and local web o
 
 ## Release process
 
-Pushes and pull requests run Windows CI tests and build the installer without publishing it. A `v<package.json version>` tag starts the separate release workflow. Release publishing requires the `WINDOWS_CERTIFICATE_B64` and `WINDOWS_CERTIFICATE_PASSWORD` repository secrets, then verifies Authenticode before upload. Release notes are read from [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
+Pushes and pull requests run Windows CI tests and build the installer without publishing it. A version tag or an authorized `[release]` commit starts the separate release workflow. Signing is optional; when a certificate is configured, the workflow verifies Authenticode before upload. Release notes are read from [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
 
 ## Backend status
 
-The configured Firebase service is anonymous product-health analytics, not a shared registration-key service. It does not currently provide the requested cross-platform registration/device dashboard. No registration backend or shared Android/Windows keys are fabricated in this project.
+Windows device registration uses the Firebase `appApi` endpoints for `/api/register` and `/api/heartbeat`. It sends the entered license key, a stable random device ID, Windows platform, app version, and the active portal hostname only. The app does not send portal paths/query strings, access tokens, or watched titles. `STB_PLAY_REGISTRATION_API` can point to another HTTPS appApi base URL. The existing product-health analytics remains a separate opt-in service. This Windows repository does not include an admin dashboard.

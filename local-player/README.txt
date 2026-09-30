@@ -1,4 +1,4 @@
-STB PLAY — v1.8.16 Windows player
+STB PLAY — v1.8.17 Windows player
 
 Run “Start Player.bat” for local browser testing, or use the Electron installer
 for the desktop app. The Electron shell stores its config under its existing
@@ -15,5 +15,8 @@ use another HTTPS manifest and STB_PLAY_RELEASE_REPOSITORY to configure its
 matching trusted GitHub release repository. A failed check is retryable; an
 unverified policy does not create a permanent lock.
 
-The Firebase endpoint currently carries anonymous app-health events only. It
-is not a shared registration-key service.
+Device registration calls the configured Firebase appApi `/api/register` and
+`/api/heartbeat` endpoints. The app sends its license key, stable random device
+ID, Windows platform, app version, and active portal hostname only. Portal
+paths/query strings, access tokens, and watched titles are not sent. Anonymous
+product-health analytics remains a separate opt-in service.

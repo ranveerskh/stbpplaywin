@@ -1,6 +1,6 @@
 # STB PLAY anonymous analytics backend
 
-This folder contains the central event endpoint used by STB PLAY v1.8.16.
+This folder contains the central event endpoint used by STB PLAY v1.8.17.
 The desktop app sends events to its local player server; that server keeps a
 small retryable outbox and forwards the allow-listed payload to the Firebase
 Function named `analyticsEvents`.

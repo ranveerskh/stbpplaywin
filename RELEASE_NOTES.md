@@ -1,1 +1,1 @@
-Improved Live TV category loading and added configurable content, appearance, and version policy settings. Existing local profiles, player preferences, favourites, and watch progress remain in the same user-data location.
+Connected Windows device registration and periodic heartbeats to the shared service. Existing local profiles, player preferences, favourites, and watch progress remain in the same user-data location.

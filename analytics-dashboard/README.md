@@ -20,7 +20,7 @@ stream URLs, channel names, raw IP addresses, or personal files.
 2. Copy that account's UID into an `admins/{uid}` document.
 3. Set the document field `role` to the string `admin`.
 4. Deploy the backend function and Firestore rules before distributing the
-   v1.8.16 player:
+   v1.8.17 player:
 
 ```bash
 firebase use stb-play-analytics

@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.16 live catalogue fallback, content modes, themes, and update policy
+ VERSION: 1.8.17 live catalogue fallback, content modes, themes, and update policy
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.16";
+const APP_VERSION = "1.8.17";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const CONTENT_MODES = window.StbPlayContentModes;
 const UPDATE_POLICY_CACHE_KEY = "stbPlayVerifiedUpdatePolicy";
@@ -53,6 +53,7 @@ const state = {
     lastCrashAt: 0,
     lastUpdateNotice: "",
   },
+  registrationHeartbeatTimer: null,
 
   vod: {
     categories: [],
@@ -294,6 +295,9 @@ const elements = {
   downloadDiagnosticButton: $("#downloadDiagnosticButton"),
   diagnosticNotice: $("#diagnosticNotice"),
   analyticsEnabled: $("#analyticsEnabled"),
+  registrationKey: $("#registrationKey"),
+  registerDeviceButton: $("#registerDeviceButton"),
+  registrationStatus: $("#registrationStatus"),
   resetPortalButton: $("#resetPortalButton"),
   refreshContentButton: $("#refreshContentButton"),
   clearHistoryButton: $("#clearHistoryButton"),
@@ -337,6 +341,55 @@ const elements = {
 };
 
 let updateToastTimer = null;
+
+function showRegistrationStatus(message, good = true) {
+  if (!elements.registrationStatus) return;
+  elements.registrationStatus.textContent = message;
+  elements.registrationStatus.style.color = good ? "#35dbc5" : "#ff9292";
+}
+
+async function refreshRegistrationStatus() {
+  try {
+    const status = await request("/api/registration/status");
+    if (status.registered) {
+      const stamp = status.lastHeartbeatAt ? new Date(status.lastHeartbeatAt).toLocaleString() : "pending";
+      showRegistrationStatus(`This Windows device is registered · last heartbeat: ${stamp}.`);
+    } else {
+      showRegistrationStatus("This device is not registered yet.", false);
+    }
+    return status;
+  } catch (error) {
+    showRegistrationStatus(error.message || "Could not read registration status.", false);
+    return null;
+  }
+}
+
+async function sendDeviceHeartbeat(showStatus = false) {
+  try {
+    const status = await request("/api/registration/heartbeat", { method: "POST" });
+    if (showStatus) await refreshRegistrationStatus();
+    return status;
+  } catch (error) {
+    if (showStatus) showRegistrationStatus(error.message || "Heartbeat could not be sent. It will retry automatically.", false);
+    return null;
+  }
+}
+
+async function heartbeatIfRegistered() {
+  try {
+    const status = await request("/api/registration/status");
+    if (status.registered) await sendDeviceHeartbeat(false);
+  } catch {}
+}
+
+function startRegistrationHeartbeat() {
+  clearInterval(state.registrationHeartbeatTimer);
+  void heartbeatIfRegistered();
+  state.registrationHeartbeatTimer = window.setInterval(
+    () => void heartbeatIfRegistered(),
+    15 * 60 * 1000
+  );
+}
 
 async function request(url, options = {}) {
   const response = await fetch(url, { cache: "no-store", ...options });
@@ -4731,7 +4784,35 @@ elements.settingsButton.addEventListener("click", () => {
   if (elements.currentParentalPin) elements.currentParentalPin.hidden = !state.parentalConfigured;
   if (elements.generateRecoveryCodeButton) elements.generateRecoveryCodeButton.disabled = !state.parentalConfigured;
   renderLocalCatalogueStatus();
+  void refreshRegistrationStatus();
   loadPortals().catch((error) => setSettingsNotice(error.message, false));
+});
+
+elements.registerDeviceButton?.addEventListener("click", async () => {
+  const licenseKey = String(elements.registrationKey?.value || "").trim();
+  if (!licenseKey) {
+    showRegistrationStatus("Enter your registration key first.", false);
+    return;
+  }
+  elements.registerDeviceButton.disabled = true;
+  elements.registerDeviceButton.textContent = "Registering…";
+  showRegistrationStatus("Registering this device…");
+  try {
+    const result = await request("/api/registration/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ licenseKey }),
+    });
+    elements.registrationKey.value = "";
+    showRegistrationStatus(result.heartbeat
+      ? "Device registered and heartbeat connected."
+      : "Device registered. Heartbeat will retry automatically.");
+  } catch (error) {
+    showRegistrationStatus(error.message || "Registration failed. Check the key and retry.", false);
+  } finally {
+    elements.registerDeviceButton.disabled = false;
+    elements.registerDeviceButton.textContent = "Register device";
+  }
 });
 
 elements.addPortalButton?.addEventListener("click", () => showPortalEditor());
@@ -5171,12 +5252,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.16.json";
+  link.download = "netplus-diagnostics-v1.8.17.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.16.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.17.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });
@@ -5352,6 +5433,7 @@ async function boot() {
   const updateAllowsStartup = await checkForUpdates({ silent: true, initial: true });
   if (!updateAllowsStartup) return;
   startAnalyticsLifecycle();
+  startRegistrationHeartbeat();
   renderCastCapabilities();
   showFirstStartWarningIfNeeded();
 
