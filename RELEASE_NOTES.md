@@ -1,1 +1,1 @@
-Improved category loading and content filtering, refreshed themes, and made in-place updates more reliable. Existing portal profiles, preferences, favourites, and watch progress stay on this device.
+Fixed settings selection persistence, refreshed app icons, and improved local asset loading. Existing portal profiles, preferences, favourites, and watch progress stay on this device.

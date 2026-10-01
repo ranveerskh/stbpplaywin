@@ -75,7 +75,7 @@ jobs:
           $policy.latestVersion = $version
           $policy.minimumVersion = '0.0.0'
           $policy.publishedAt = [DateTimeOffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
-          $policy.notes = 'Improved category loading and content filtering, refreshed themes, and made in-place updates more reliable.'
+          $policy.notes = 'Fixed settings selection persistence, refreshed app icons, and improved local asset loading.'
           $policy.downloadUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v$version/Netplus-IPTV-Player-Setup-$version.exe"
           $policy | ConvertTo-Json -Depth 5 | Set-Content -Path update.json -Encoding utf8
           git config user.name 'github-actions[bot]'
