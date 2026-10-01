@@ -1,10 +1,10 @@
 {
   "platform": "windows",
   "channel": "stable",
-  "version": "1.8.19",
-  "latestVersion": "1.8.19",
-  "minimumVersion": "1.8.19",
-  "publishedAt": "2026-09-30T20:03:35.000Z",
-  "notes": "Catalogue reliability, appearance and content preferences, configurable version enforcement, and preserved local profiles and settings.",
-  "downloadUrl": "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.19/Netplus-IPTV-Player-Setup-1.8.19.exe"
+  "version": "1.8.20",
+  "latestVersion": "1.8.20",
+  "minimumVersion": "0.0.0",
+  "publishedAt": "2026-10-01T00:16:47.081Z",
+  "notes": "Improved category loading and content filtering, refreshed themes, and made in-place updates more reliable.",
+  "downloadUrl": "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.20/Netplus-IPTV-Player-Setup-1.8.20.exe"
 }
