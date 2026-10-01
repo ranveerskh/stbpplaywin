@@ -132,21 +132,30 @@ function closeServer(server) {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-test("v1.8.19 release markers and recovery/search boundaries are present", () => {
+test("v1.8.20 release markers and recovery/search boundaries are present", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const updateJson = JSON.parse(fs.readFileSync(path.join(ROOT, "update.json"), "utf8"));
   const app = fs.readFileSync(path.join(ROOT, "local-player", "app.js"), "utf8");
   const server = fs.readFileSync(path.join(ROOT, "local-player", "server.cjs"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "local-player", "index.html"), "utf8");
 
-  assert.equal(packageJson.version, "1.8.19");
+  assert.equal(packageJson.version, "1.8.20");
   assert.equal(packageJson.build.appId, "ca.netplus.iptvplayer");
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
-  assert.equal(updateJson.version, "1.8.19");
-  assert.match(updateJson.downloadUrl, /v1\.8\.19\/Netplus-IPTV-Player-Setup-1\.8\.19\.exe$/);
+  const versionParts = (value) => String(value).split(".").map(Number);
+  const compareVersions = (left, right) => {
+    const a = versionParts(left), b = versionParts(right);
+    for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+      const difference = (a[index] || 0) - (b[index] || 0);
+      if (difference) return difference;
+    }
+    return 0;
+  };
+  assert.ok(compareVersions(updateJson.version, packageJson.version) <= 0);
+  assert.match(updateJson.downloadUrl, new RegExp(`v${updateJson.version}/Netplus-IPTV-Player-Setup-${updateJson.version}\\.exe$`));
   assert.equal(updateJson.platform, "windows");
   assert.equal(updateJson.channel, "stable");
-  assert.equal(updateJson.minimumVersion, "1.8.19");
+  assert.ok(compareVersions(updateJson.minimumVersion, updateJson.version) <= 0);
   assert.match(app, /function strictTitleSearchMatch/);
   assert.match(app, /!query \|\| strictTitleSearchMatch\(\{ title: channel\.name \}, query\)/);
   assert.doesNotMatch(server, /ADULT_LIVE_CATEGORY_ID/);
@@ -313,6 +322,7 @@ test("update policy endpoint validates a configurable local manifest and remains
       version: "1.8.20",
       latestVersion: "1.8.20",
       minimumVersion: "1.8.18",
+      publishedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
       notes: "Safe update policy test",
       downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.20/Netplus-IPTV-Player-Setup-1.8.20.exe",
     },
@@ -340,7 +350,7 @@ test("update policy endpoint validates a configurable local manifest and remains
   const normalized = await accepted.json();
   assert.equal(normalized.platform, "windows");
   assert.equal(normalized.channel, "stable");
-  assert.equal(normalized.minimumVersion, "1.8.18");
+  assert.equal(normalized.minimumVersion, "1.8.20");
   assert.equal(normalized.latestVersion, "1.8.20");
 
   state.policy.downloadUrl += "?token=not-allowed";

@@ -85,9 +85,23 @@ ipcMain.handle("download-and-install-update", async (_event, rawUrl) => {
   const installerPath = path.join(app.getPath("temp"), `stb-play-update-${Date.now()}.exe`);
   try {
     await downloadInstaller(updateUrl, installerPath);
-    const installer = spawn(installerPath, [], { detached: true, windowsHide: false, stdio: "ignore" });
-    installer.unref();
-    setTimeout(() => app.quit(), 900);
+    if (process.platform === "win32") {
+      // Start a detached waiter first, then exit this app. NSIS can replace
+      // the installed executable only after both Electron processes release it.
+      const ids = [process.pid, playerProcess?.pid].filter((id) => Number.isInteger(id) && id > 0);
+      const escapedInstaller = installerPath.replace(/'/g, "''");
+      const script = `$ids=@(${ids.join(",")}); foreach($id in $ids){while(Get-Process -Id $id -ErrorAction SilentlyContinue){Start-Sleep -Milliseconds 200}}; Start-Process -FilePath '${escapedInstaller}'`;
+      const encoded = Buffer.from(script, "utf16le").toString("base64");
+      const waiter = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded], {
+        detached: true, windowsHide: true, stdio: "ignore",
+      });
+      waiter.unref();
+      app.quit();
+    } else {
+      const installer = spawn(installerPath, [], { detached: true, windowsHide: false, stdio: "ignore" });
+      installer.unref();
+      app.quit();
+    }
     return { started: true };
   } catch (error) {
     try { fs.unlinkSync(installerPath); } catch {}

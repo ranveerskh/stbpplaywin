@@ -1,4 +1,4 @@
-STB PLAY Windows — v1.8.19
+STB PLAY Windows — v1.8.20
 
 PROJECT SCOPE
 This repository contains the Windows desktop application and its private
@@ -13,7 +13,7 @@ npm. From this directory run:
   npm test
   npm run desktop:make
 
-The NSIS installer is written to release/Netplus-IPTV-Player-Setup-1.8.19.exe.
+The NSIS installer is written to release/Netplus-IPTV-Player-Setup-1.8.20.exe.
 The test suite checks the application sources, update policy rules, and the
 local portal integration flow. A successful Linux source check does not replace
 a Windows installer build, Authenticode verification, or physical-device test.

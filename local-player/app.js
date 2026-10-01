@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.19 live catalogue fallback, content modes, themes, and update policy
+ VERSION: 1.8.20 live catalogue fallback, content modes, themes, and update policy
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.19";
+const APP_VERSION = "1.8.20";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const CONTENT_MODES = window.StbPlayContentModes;
 const UPDATE_POLICY_CACHE_KEY = "stbPlayVerifiedUpdatePolicy";
@@ -1073,6 +1073,14 @@ function contentModeAllows(restricted) {
   return CONTENT_MODES?.isVisibleInMode(state.contentMode, restricted) ?? true;
 }
 
+function categoryModeAllows(category) {
+  // Categories are containers. Keep mixed/ordinary categories selectable;
+  // apply the mode to each channel or title inside them. Only explicitly
+  // adult categories follow the category-level mode rule.
+  const restricted = CONTENT_MODES?.isRestrictedCategory(category) || Boolean(category.locked || category.adultLocked);
+  return !restricted || contentModeAllows(true);
+}
+
 function canDisplayRestrictedContent(restricted) {
   return CONTENT_MODES?.canDisplayInMode(state.contentMode, restricted, state.contentModeUnlocked) ?? true;
 }
@@ -1567,7 +1575,7 @@ function renderCategories() {
 
   const visiblePortalCategories = state.catalog.categories.filter(
     (category) => (state.editingGroups || !state.hiddenGroups.has(category.id)) &&
-      contentModeAllows(CONTENT_MODES?.isRestrictedCategory(category) || Boolean(category.locked || category.adultLocked))
+      categoryModeAllows(category)
   );
 
   const categories = [
@@ -1618,7 +1626,10 @@ function renderCategories() {
         renderCategories();
         if (!['all', 'favorites'].includes(category.id)) {
           const loaded = state.catalog.channels.some((channel) => String(channel.genreId) === String(category.id));
-          if (!loaded && !(await loadLiveCategoryIntoCatalog(category.id))) return;
+          const restrictedCategory = CONTENT_MODES?.isRestrictedCategory(category) || category.locked || category.adultLocked;
+          // Provider get_all_channels can return a partial list for adult
+          // genres. Refresh those on selection even when a few rows exist.
+          if ((!loaded || restrictedCategory) && !(await loadLiveCategoryIntoCatalog(category.id))) return;
         }
         if (state.category === category.id) renderChannels();
       };
@@ -2420,7 +2431,7 @@ function renderVodCategories() {
   const scrollTop = elements.vodCategories.scrollTop;
 
   const rows = state.vod.categories.filter((category) =>
-    contentModeAllows(CONTENT_MODES?.isRestrictedCategory(category) || Boolean(category.locked || category.adultLocked))
+    categoryModeAllows(category)
   ).map((category) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -3818,7 +3829,7 @@ function seriesCategoryById(id) { return state.series.categories.find((category)
 function renderSeriesCategories() {
   if (!elements.seriesCategories) return;
   const rows = state.series.categories.filter((category) =>
-    contentModeAllows(CONTENT_MODES?.isRestrictedCategory(category) || Boolean(category.locked || category.adultLocked))
+    categoryModeAllows(category)
   ).map((category) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -4954,14 +4965,19 @@ function compareVersions(left, right) {
   return 0;
 }
 
+function minimumVersionForPolicy(policy) {
+  const publishedAt = Date.parse(String(policy?.publishedAt || ""));
+  const newerReleaseExists = compareVersions(APP_VERSION, policy?.latestVersion || "0.0.0") < 0;
+  const graceExpired = Number.isFinite(publishedAt) && Date.now() >= publishedAt + 14 * 24 * 60 * 60 * 1000;
+  return newerReleaseExists && graceExpired ? String(policy.latestVersion) : "0.0.0";
+}
+
 function cachedUpdatePolicy() {
   try {
     const policy = JSON.parse(localStorage.getItem(UPDATE_POLICY_CACHE_KEY) || "null");
     if (!policy || !/^\d+\.\d+\.\d+$/.test(String(policy.latestVersion || "")) ||
-        !/^\d+\.\d+\.\d+$/.test(String(policy.minimumVersion || "")) ||
-        compareVersions(policy.minimumVersion, policy.latestVersion) > 0 ||
         !isTrustedUpdateUrl(policy.downloadUrl, policy.latestVersion)) return null;
-    return policy;
+    return { ...policy, minimumVersion: minimumVersionForPolicy(policy) };
   } catch { return null; }
 }
 
@@ -5070,21 +5086,22 @@ async function checkForUpdates({ silent = false, initial = false } = {}) {
     if (!response.ok) throw new Error("Update service unavailable.");
     const manifest = await response.json();
     const latest = String(manifest.latestVersion || manifest.version || "");
-    const minimum = String(manifest.minimumVersion || latest);
+    const publishedAt = String(manifest.publishedAt || "");
     const downloadUrl = String(manifest.downloadUrl || "").trim();
     if (manifest.platform !== "windows" || manifest.channel !== "stable" ||
-        !/^\d+\.\d+\.\d+$/.test(latest) || !/^\d+\.\d+\.\d+$/.test(minimum) ||
-        compareVersions(minimum, latest) > 0 || !isTrustedUpdateUrl(downloadUrl, latest)) {
+        !/^\d+\.\d+\.\d+$/.test(latest) ||
+        (publishedAt && !Number.isFinite(Date.parse(publishedAt))) || !isTrustedUpdateUrl(downloadUrl, latest)) {
       throw new Error("The update policy could not be verified.");
     }
 
     const policy = {
       platform: "windows", channel: "stable", version: latest,
-      latestVersion: latest, minimumVersion: minimum, downloadUrl,
+      latestVersion: latest, publishedAt, minimumVersion: "0.0.0", downloadUrl,
       notes: String(manifest.notes || "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 400),
     };
+    policy.minimumVersion = minimumVersionForPolicy(policy);
     localStorage.setItem(UPDATE_POLICY_CACHE_KEY, JSON.stringify(policy));
-    const mustUpdate = compareVersions(APP_VERSION, minimum) < 0;
+    const mustUpdate = compareVersions(APP_VERSION, policy.minimumVersion) < 0;
     if (mustUpdate) {
       state.latestUpdateUrl = downloadUrl;
       showUpdateRequired(policy, `This version is no longer supported. Install STB PLAY v${latest} to continue.`);
@@ -5250,12 +5267,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.19.json";
+  link.download = "netplus-diagnostics-v1.8.20.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.19.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.20.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });

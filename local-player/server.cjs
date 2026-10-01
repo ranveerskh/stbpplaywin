@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.19 strict search, restored live parental locking, subtitles, recovery and analytics
+ VERSION: 1.8.20 strict search, restored live parental locking, subtitles, recovery and analytics
  File: server.cjs
 =========================================================
 */
@@ -38,7 +38,7 @@ const PORT = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPo
   : 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.19";
+const APP_VERSION = "1.8.20";
 const REGISTRATION_API = normalizeRegistrationApiUrl(process.env.STB_PLAY_REGISTRATION_API || DEFAULT_REGISTRATION_API);
 const REGISTRATION_PATH = path.join(path.dirname(CONFIG_PATH), "stb-play-registration.json");
 const REGISTRATION_HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000;
@@ -1198,7 +1198,6 @@ async function loadLiveCategoryChannels(categoryId) {
   if (!category) throw new PlayerError("That Live TV category is no longer available.", 404);
 
   const existing = catalog.publicCatalog.channels.filter((channel) => String(channel.genreId) === wantedCategoryId);
-  if (existing.length) return existing;
 
   let response;
   try {
@@ -1230,7 +1229,7 @@ async function loadLiveCategoryChannels(categoryId) {
     wantedCategoryId,
     wantedCategoryId
   );
-  if (!addedChannels.length) return [];
+  if (!addedChannels.length) return existing;
 
   const knownIds = new Set(catalog.publicCatalog.channels.map((channel) => String(channel.id)));
   const retained = extraLiveCategoryChannels.get(wantedCategoryId) || new Map();
@@ -1242,7 +1241,7 @@ async function loadLiveCategoryChannels(categoryId) {
   catalog.publicCatalog.channels.push(...addedChannels.filter((channel) => !knownIds.has(String(channel.id))));
   catalog.publicCatalog.channels.sort((a, b) => (a.number ?? Number.MAX_SAFE_INTEGER) - (b.number ?? Number.MAX_SAFE_INTEGER) ||
     a.name.localeCompare(b.name));
-  return addedChannels;
+  return catalog.publicCatalog.channels.filter((channel) => String(channel.genreId) === wantedCategoryId);
 }
 
 async function fetchUpdatePolicy() {
@@ -1892,7 +1891,10 @@ async function getVodItems(categoryId, page = 0, searchTerm = "", queueOptions =
         ...normalized,
         categoryId: String(categoryId),
         categoryTitle: normalized.categoryTitle || categoryTitle,
-        categoryLocked: categoryLocked || normalized.adultLocked,
+        // Keep the provider's category lock separate from per-title adult
+        // classification. A single restricted title must not hide every
+        // otherwise normal title in the same category.
+        categoryLocked,
         ...(categorySuggestsSeries ? { kind: "series", isSeries: true } : {}),
       };
     });
@@ -3893,7 +3895,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.19.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.20.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 

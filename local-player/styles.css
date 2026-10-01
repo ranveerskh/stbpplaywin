@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.19 strict search, restored live parental locking, subtitles, recovery and analytics
+ VERSION: 1.8.20 strict search, restored live parental locking, subtitles, recovery and analytics
  File: styles.css
 =========================================================
 */
@@ -1126,6 +1126,43 @@ body.theme-light .dashboard-hero .dashboard-hero-meta span { color:#f5fbff !impo
 .portal-loading-box .secondary-wide-button { width:100%; margin-top:20px; }
 .theme-light .portal-loading-box { background:#fff; color:#14283a; }
 .theme-light .portal-progress-meta { color:#526c80; }
+
+/* Keep the fixed-color overlays aligned with the selected app theme. */
+.theme-light .setup-card,.theme-light .modal-content,.theme-light .settings-box,
+.theme-light .pin-modal-box,.theme-light .quality-modal-box {
+  background:var(--panel); color:var(--text); border-color:var(--line);
+}
+.theme-light .modal-content h1,.theme-light .modal-content h2,.theme-light .settings-box h1,
+.theme-light .settings-box h2,.theme-light .pin-modal-box h2 { color:var(--text); }
+.theme-light .modal-content p,.theme-light .settings-box p,.theme-light .settings-box label,
+.theme-light .pin-description,.theme-light .meta-text,.theme-light .desc-text { color:var(--text-soft); }
+.theme-light .modal-content input,.theme-light .modal-content select,.theme-light .settings-box input,
+.theme-light .settings-box select,.theme-light .pin-modal-box input {
+  background:var(--panel-2); color:var(--text); border-color:var(--line);
+}
+.theme-light .close-btn,.theme-light .quality-option,.theme-light .resume-btn {
+  background:var(--panel-2); color:var(--text); border-color:var(--line);
+}
+.theme-light .modal-overlay { background:rgba(22,39,52,.55); }
+.theme-light .update-required-overlay { background:rgba(22,39,52,.52); }
+.theme-light .update-required-card { background:#fff; color:#14283a; }
+.theme-light .update-required-card p:not(.eyebrow) { color:#526c80; }
+.theme-midnight .topbar { background:rgba(16,11,24,.94); }
+.theme-midnight .panel,.theme-midnight .player-card,.theme-midnight .modal-content,
+.theme-midnight .settings-box,.theme-midnight .pin-modal-box,.theme-midnight .quality-modal-box {
+  background:var(--panel); color:var(--text); border-color:var(--line);
+}
+.theme-midnight .category-button,.theme-midnight .channel-row,.theme-midnight .vod-category-button,
+.theme-midnight .series-card,.theme-midnight .quality-option { color:var(--text-soft); }
+.theme-midnight .modal-content input,.theme-midnight .modal-content select,
+.theme-midnight .settings-box input,.theme-midnight .settings-box select,
+.theme-midnight .pin-modal-box input { background:var(--panel-2); color:var(--text); border-color:var(--line); }
+.theme-midnight .settings-page-grid > .settings-section { background:linear-gradient(145deg,var(--panel-2),var(--panel-3)); border-color:var(--line); }
+.theme-midnight .settings-section label,.theme-midnight .settings-section p,
+.theme-midnight .modal-content p,.theme-midnight .update-required-card p:not(.eyebrow) { color:var(--text-soft); }
+.theme-midnight .update-required-card { background:var(--panel); color:var(--text); }
+.theme-midnight .update-required-overlay,.theme-midnight .modal-overlay { background:rgba(6,4,10,.78); }
+.theme-midnight .player-card .now-playing { background:var(--panel); border-color:var(--line); }
 .faq-list { display:flex; flex-direction:column; gap:7px; margin-top:13px; }
 .faq-list details { padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); color:var(--text-soft); font-size:10px; line-height:1.55; }
 .faq-list summary { cursor:pointer; color:var(--text); font-weight:800; }

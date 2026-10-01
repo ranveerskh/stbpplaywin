@@ -63,3 +63,23 @@ jobs:
         run: |
           $installer = Get-ChildItem 'release\Netplus-IPTV-Player-Setup-*.exe' | Select-Object -First 1
           gh release create "$env:STB_RELEASE_TAG" $installer.FullName --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "STB PLAY $env:STB_RELEASE_TAG" --notes-file RELEASE_NOTES.md
+      - name: Publish stable update policy
+        shell: pwsh
+        run: |
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          $policy = Get-Content update.json -Raw | ConvertFrom-Json
+          $version = [string]$package.version
+          $policy.platform = 'windows'
+          $policy.channel = 'stable'
+          $policy.version = $version
+          $policy.latestVersion = $version
+          $policy.minimumVersion = '0.0.0'
+          $policy.publishedAt = [DateTimeOffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+          $policy.notes = 'Improved category loading and content filtering, refreshed themes, and made in-place updates more reliable.'
+          $policy.downloadUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v$version/Netplus-IPTV-Player-Setup-$version.exe"
+          $policy | ConvertTo-Json -Depth 5 | Set-Content -Path update.json -Encoding utf8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add update.json
+          git commit -m "Update Windows stable policy to v$version"
+          git push origin HEAD:main
