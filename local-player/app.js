@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.23 reliable Windows update installer handoff
+ VERSION: 1.8.24 provider setup details
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.23";
+const APP_VERSION = "1.8.24";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const CONTENT_MODES = window.StbPlayContentModes;
 const UPDATE_POLICY_CACHE_KEY = "stbPlayVerifiedUpdatePolicy";
@@ -53,6 +53,8 @@ const state = {
   contentMode: CONTENT_MODES?.normalizeMode(localStorage.getItem("stbPlayContentMode")) || "all",
   portals: [],
   activePortalId: null,
+  providerDeviceIdRaw: "",
+  providerDetailsRenderToken: 0,
   subscription: null,
   recoveryConfigured: false,
   latestUpdateUrl: "",
@@ -362,6 +364,8 @@ function showRegistrationStatus(message, good = true) {
 async function refreshRegistrationStatus() {
   try {
     const status = await request("/api/registration/status");
+    state.providerDeviceIdRaw = typeof status.deviceId === "string" ? status.deviceId : "";
+    renderProviderSetupDetails();
     if (status.registered) {
       const stamp = status.lastHeartbeatAt ? new Date(status.lastHeartbeatAt).toLocaleString() : "pending";
       showRegistrationStatus(`This Windows device is registered · last heartbeat: ${stamp}.`);
@@ -373,6 +377,31 @@ async function refreshRegistrationStatus() {
     showRegistrationStatus(error.message || "Could not read registration status.", false);
     return null;
   }
+}
+
+function renderProviderSetupDetails() {
+  const portalMacValue = $("#providerPortalMacValue");
+  const deviceIdValue = $("#providerDeviceIdValue");
+  if (!portalMacValue || !deviceIdValue) return;
+
+  const activePortal = state.portals.find((portal) => String(portal.id) === String(state.activePortalId));
+  const portalMac = typeof activePortal?.mac === "string" ? activePortal.mac.trim() : "";
+  portalMacValue.textContent = portalMac || "No portal MAC configured";
+
+  const rawDeviceId = state.providerDeviceIdRaw;
+  const renderToken = ++state.providerDetailsRenderToken;
+  if (!rawDeviceId) {
+    deviceIdValue.textContent = "Device ID unavailable";
+    return;
+  }
+
+  deviceIdValue.textContent = "Loading…";
+  window.StbPlayProviderSetup.hashDeviceIdForDisplay(rawDeviceId).then((displayId) => {
+    if (renderToken !== state.providerDetailsRenderToken || rawDeviceId !== state.providerDeviceIdRaw) return;
+    deviceIdValue.textContent = displayId || "Device ID unavailable";
+  }).catch(() => {
+    if (renderToken === state.providerDetailsRenderToken) deviceIdValue.textContent = "Device ID unavailable";
+  });
 }
 
 async function sendDeviceHeartbeat(showStatus = false) {
@@ -1483,6 +1512,7 @@ async function loadPortals() {
   state.subscription = result.subscription || state.subscription;
   try { state.subscription = (await request("/api/subscription")).subscription || state.subscription; } catch { /* profile data is optional */ }
   renderPortalList();
+  renderProviderSetupDetails();
   renderSubscription();
 }
 
@@ -1502,7 +1532,7 @@ function renderSubscription() {
 }
 
 async function activatePortal(id) {
-  try { const result = await request("/api/portals/activate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) }); state.portals = result.portals || state.portals; state.activePortalId = result.activePortalId || id; renderPortalList(); await refreshPortalWithProgress(state.portals.find((portal) => portal.id === state.activePortalId)?.nickname || "Portal"); setSettingsNotice("Active portal changed. Content refreshed."); }
+  try { const result = await request("/api/portals/activate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) }); state.portals = result.portals || state.portals; state.activePortalId = result.activePortalId || id; renderPortalList(); renderProviderSetupDetails(); await refreshPortalWithProgress(state.portals.find((portal) => portal.id === state.activePortalId)?.nickname || "Portal"); setSettingsNotice("Active portal changed. Content refreshed."); }
   catch (error) { setSettingsNotice(error.message, false); }
 }
 
@@ -1559,7 +1589,7 @@ async function refreshPortalWithProgress(title, options = {}) {
 
 async function deletePortal(id) {
   if (!window.confirm("Delete this portal?")) return;
-  try { const result = await request(`/api/portals/${encodeURIComponent(id)}`, { method: "DELETE" }); state.portals = result.portals || []; state.activePortalId = result.activePortalId || null; renderPortalList(); setSettingsNotice("Portal deleted."); }
+  try { const result = await request(`/api/portals/${encodeURIComponent(id)}`, { method: "DELETE" }); state.portals = result.portals || []; state.activePortalId = result.activePortalId || null; renderPortalList(); renderProviderSetupDetails(); setSettingsNotice("Portal deleted."); }
   catch (error) { setSettingsNotice(error.message, false); }
 }
 
@@ -5136,6 +5166,7 @@ elements.portalEditorForm?.addEventListener("submit", async (event) => {
   try {
     const result = await request("/api/portals", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     state.portals = result.portals || state.portals; state.activePortalId = result.activePortalId || state.activePortalId;
+    renderProviderSetupDetails();
     renderPortalList(); elements.portalEditorModal.hidden = true; await refreshPortalWithProgress(body.nickname || "Portal");
   } catch (error) { elements.portalEditorNotice.textContent = error.message; elements.portalEditorNotice.style.color = "#ff9292"; elements.portalEditorNotice.hidden = false; }
 });
@@ -5558,12 +5589,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.23.json";
+  link.download = "netplus-diagnostics-v1.8.24.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.23.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.24.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });

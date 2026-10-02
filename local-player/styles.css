@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.23 reliable Windows update installer handoff
+ VERSION: 1.8.24 provider setup details
  File: styles.css
 =========================================================
 */
@@ -1251,6 +1251,21 @@ body.theme-light .dashboard-hero .dashboard-hero-meta span { color:#f5fbff !impo
   .settings-page-grid > .settings-diagnostic,
   .settings-page-grid > .settings-analytics,
   .settings-page-grid > .settings-portal-config { grid-column:1; }
+}
+
+.settings-page-grid > .settings-provider-details { grid-column:1 / -1; }
+.provider-details-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:14px 0; }
+.provider-details-row { min-width:0; padding:11px 13px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.12); }
+.provider-details-row dt { margin:0 0 5px; color:var(--muted); font-size:10px; font-weight:700; }
+.provider-details-row dd { margin:0; color:var(--text); font-size:13px; font-weight:700; }
+.provider-details-row .provider-device-id { max-width:100%; overflow-wrap:anywhere; word-break:break-all; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; line-height:1.65; }
+.provider-details-help { margin:0!important; font-weight:700; }
+.theme-light .provider-details-row { background:#f4f8fa; }
+.theme-midnight .provider-details-row { background:rgba(0,0,0,.22); }
+.theme-pink .provider-details-row { background:#fff4f8; }
+.theme-pink .provider-details-row dt { color:#72566a; }
+@media (max-width:560px) {
+  .provider-details-list { grid-template-columns:1fr; }
 }
 
 @media (max-width:700px) {
