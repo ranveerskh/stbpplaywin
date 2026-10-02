@@ -132,14 +132,14 @@ function closeServer(server) {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-test("v1.8.22 release markers and recovery/search boundaries are present", () => {
+test("v1.8.23 release markers and recovery/search boundaries are present", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const updateJson = JSON.parse(fs.readFileSync(path.join(ROOT, "update.json"), "utf8"));
   const app = fs.readFileSync(path.join(ROOT, "local-player", "app.js"), "utf8");
   const server = fs.readFileSync(path.join(ROOT, "local-player", "server.cjs"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "local-player", "index.html"), "utf8");
 
-  assert.equal(packageJson.version, "1.8.22");
+  assert.equal(packageJson.version, "1.8.23");
   assert.equal(packageJson.build.appId, "ca.netplus.iptvplayer");
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
   const versionParts = (value) => String(value).split(".").map(Number);
@@ -223,7 +223,7 @@ test("live catalogue loads a missing locked category on demand and recovers 401/
   });
 
   await waitFor(`http://127.0.0.1:${playerPort}/api/config`);
-  const contentModesResponse = await fetch(`http://127.0.0.1:${playerPort}/content-modes.js?v=1.8.22`);
+  const contentModesResponse = await fetch(`http://127.0.0.1:${playerPort}/content-modes.js?v=1.8.23`);
   assert.equal(contentModesResponse.status, 200);
   assert.match(contentModesResponse.headers.get("content-type") || "", /javascript/);
   assert.match(await contentModesResponse.text(), /adult-free.*adult-only/s);
@@ -324,12 +324,12 @@ test("update policy endpoint validates a configurable local manifest and remains
     policy: {
       platform: "windows",
       channel: "stable",
-      version: "1.8.22",
-      latestVersion: "1.8.22",
+      version: "1.8.23",
+      latestVersion: "1.8.23",
       minimumVersion: "1.8.18",
       publishedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
       notes: "Safe update policy test",
-      downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.22/Netplus-IPTV-Player-Setup-1.8.22.exe",
+      downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.23/Netplus-IPTV-Player-Setup-1.8.23.exe",
     },
   };
   const manifestServer = http.createServer((req, res) => {
@@ -355,8 +355,8 @@ test("update policy endpoint validates a configurable local manifest and remains
   const normalized = await accepted.json();
   assert.equal(normalized.platform, "windows");
   assert.equal(normalized.channel, "stable");
-  assert.equal(normalized.minimumVersion, "1.8.22");
-  assert.equal(normalized.latestVersion, "1.8.22");
+  assert.equal(normalized.minimumVersion, "1.8.23");
+  assert.equal(normalized.latestVersion, "1.8.23");
 
   state.policy.downloadUrl += "?token=not-allowed";
   const invalid = await fetch(`http://127.0.0.1:${playerPort}/api/update-policy`);

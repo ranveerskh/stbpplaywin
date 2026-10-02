@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const https = require("node:https");
 const path = require("node:path");
+const { buildWindowsUpdateLauncher } = require("./update-installer.cjs");
 
 const PORT = 3847;
 let playerProcess;
@@ -86,14 +87,18 @@ ipcMain.handle("download-and-install-update", async (_event, rawUrl) => {
   try {
     await downloadInstaller(updateUrl, installerPath);
     if (process.platform === "win32") {
-      // Start a detached waiter first, then exit this app. NSIS can replace
-      // the installed executable only after both Electron processes release it.
+      // Start a detached waiter, confirm Windows created it, then exit. The
+      // waiter records launch failures instead of silently leaving the app closed.
       const ids = [process.pid, playerProcess?.pid].filter((id) => Number.isInteger(id) && id > 0);
-      const escapedInstaller = installerPath.replace(/'/g, "''");
-      const script = `$ids=@(${ids.join(",")}); foreach($id in $ids){while(Get-Process -Id $id -ErrorAction SilentlyContinue){Start-Sleep -Milliseconds 200}}; Start-Process -FilePath '${escapedInstaller}'`;
-      const encoded = Buffer.from(script, "utf16le").toString("base64");
-      const waiter = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded], {
+      const launcherPath = `${installerPath}.ps1`;
+      const logPath = `${installerPath}.log`;
+      fs.writeFileSync(launcherPath, `\uFEFF${buildWindowsUpdateLauncher({ installerPath, logPath, processIds: ids })}`, "utf8");
+      const waiter = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", launcherPath], {
         detached: true, windowsHide: true, stdio: "ignore",
+      });
+      await new Promise((resolve, reject) => {
+        waiter.once("spawn", resolve);
+        waiter.once("error", reject);
       });
       waiter.unref();
       app.quit();
@@ -106,6 +111,7 @@ ipcMain.handle("download-and-install-update", async (_event, rawUrl) => {
   } catch (error) {
     try { fs.unlinkSync(installerPath); } catch {}
     try { fs.unlinkSync(`${installerPath}.part`); } catch {}
+    try { fs.unlinkSync(`${installerPath}.ps1`); } catch {}
     throw error;
   }
 });

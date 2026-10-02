@@ -11,37 +11,38 @@ const {
 const contentModesContext = { module: { exports: {} }, globalThis: {} };
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../local-player/content-modes.js"), "utf8"), contentModesContext);
 const contentModes = contentModesContext.module.exports;
+const { buildWindowsUpdateLauncher } = require("../electron/update-installer.cjs");
 
 const policy = {
   platform: "windows",
   channel: "stable",
-  latestVersion: "1.8.22",
+  latestVersion: "1.8.23",
   minimumVersion: "0.0.0",
   publishedAt: "2026-01-01T00:00:00.000Z",
-  downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.22/Netplus-IPTV-Player-Setup-1.8.22.exe",
+  downloadUrl: "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.23/Netplus-IPTV-Player-Setup-1.8.23.exe",
 };
 
 test("version policy gives a new stable release 14 days before requiring it", () => {
   assert.ok(compareVersions("v1.8.9", "1.8.18") < 0);
-  assert.ok(compareVersions("1.8.22", "1.8.18") > 0);
+  assert.ok(compareVersions("1.8.23", "1.8.18") > 0);
   const releaseTime = Date.parse(policy.publishedAt);
   assert.equal(requiresUpdate("1.8.18", policy, releaseTime + 13 * 86400000), false);
   assert.equal(requiresUpdate("1.8.18", policy, releaseTime + 14 * 86400000), true);
-  assert.equal(requiresUpdate("1.8.22", policy, releaseTime + 30 * 86400000), false);
+  assert.equal(requiresUpdate("1.8.23", policy, releaseTime + 30 * 86400000), false);
   assert.equal(requiresUpdate("1.8.18", { ...policy, publishedAt: "" }, releaseTime + 30 * 86400000), false);
 });
 
 test("update policy accepts Windows stable installer URLs only", () => {
   const normalized = normalizeUpdateManifest(policy);
-  assert.equal(normalized.latestVersion, "1.8.22");
-  assert.equal(normalized.minimumVersion, "1.8.22");
+  assert.equal(normalized.latestVersion, "1.8.23");
+  assert.equal(normalized.minimumVersion, "1.8.23");
   const withinGrace = normalizeUpdateManifest({ ...policy, publishedAt: "2026-01-01T00:00:00.000Z" }, {
     now: Date.parse("2026-01-10T00:00:00.000Z"),
   });
   assert.equal(withinGrace.minimumVersion, "0.0.0");
   assert.throws(() => normalizeUpdateManifest({ ...policy, platform: "android" }), /different platform/);
   assert.throws(() => normalizeUpdateManifest({ ...policy, channel: "preview" }), /different release channel/);
-  assert.throws(() => normalizeUpdateManifest({ ...policy, minimumVersion: "1.8.23" }), /cannot be newer/);
+  assert.throws(() => normalizeUpdateManifest({ ...policy, minimumVersion: "1.8.24" }), /cannot be newer/);
   assert.throws(() => normalizeUpdateManifest({ ...policy, downloadUrl: `${policy.downloadUrl}?token=secret` }), /trusted release asset/);
   assert.throws(() => normalizeUpdateManifest({ ...policy, downloadUrl: policy.downloadUrl.replace("stbpplaywin", "netplus-player") }), /trusted release asset/);
 });
@@ -105,4 +106,21 @@ test("rating detection recognizes common mature ratings", () => {
     assert.equal(contentModes.isRestrictedMedia({ title: "A Show", rating }), true, rating);
   }
   assert.equal(contentModes.isRestrictedMedia({ title: "A Show", rating: "PG-13" }), false);
+});
+
+test("Windows update handoff waits for both app processes and reports launch failures", () => {
+  const main = fs.readFileSync(path.join(__dirname, "../electron/main.cjs"), "utf8");
+  const script = buildWindowsUpdateLauncher({
+    installerPath: "C:\\Users\\O'Neil\\AppData\\Local\\Temp\\stb-play-update.exe",
+    logPath: "C:\\Users\\O'Neil\\AppData\\Local\\Temp\\stb-play-update.log",
+    processIds: [123, 456, 123, -1],
+  });
+  assert.match(script, /Get-Process -Id \$processId/);
+  assert.match(script, /Start-Process -FilePath \$installer/);
+  assert.match(script, /Out-File -LiteralPath \$log/);
+  assert.match(script, /MessageBox/);
+  assert.match(script, /@\(123,456\)/);
+  assert.match(script, /O''Neil/);
+  assert.ok(main.indexOf('waiter.once("spawn"') < main.indexOf("waiter.unref()"));
+  assert.ok(main.indexOf("waiter.unref()") < main.indexOf("app.quit()", main.indexOf("download-and-install-update")));
 });
