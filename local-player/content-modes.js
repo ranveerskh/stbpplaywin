@@ -4,7 +4,7 @@
   else root.StbPlayContentModes = api;
 }(globalThis, function createContentModes() {
   const restrictedWords = /(?:adult|xxx|porn|erotic|sex(?:y)?|18\s*(?:\+|plus)|x-rated|hentai)/i;
-  const restrictedRatings = /(?:18\s*(?:\+|plus)|\bA\b|NC[- ]?17|XXX|\bX{1,3}\b)/i;
+  const restrictedRatings = /(?:\b18\s*(?:\+|plus|a)(?!\w)|\bTV[- ]?MA\b|\bR(?:[- ]?rated)?\b|\bMA\s*15\+(?!\w)|\bR\s*18\+(?!\w)|\bNC[- ]?17\b|\bAO\b|\bA\b|\bX{1,3}\b)/i;
 
   function normalizeMode(value) {
     return ["all", "adult-free", "adult-only"].includes(String(value || "").toLowerCase())
@@ -14,6 +14,15 @@
 
   function isRestrictedCategory(category) {
     return Boolean(category?.locked || category?.adultLocked || restrictedWords.test(String(category?.title || category?.name || "")));
+  }
+
+  function isCategoryVisibleInMode(mode, category, learnedRestricted = false) {
+    const normalized = normalizeMode(mode);
+    if (normalized === "all") return true;
+    const explicitlyRestricted = isRestrictedCategory(category);
+    if (normalized === "adult-only") return explicitlyRestricted || Boolean(learnedRestricted);
+    // Keep mixed categories in Adult-Free mode and filter their items separately.
+    return !explicitlyRestricted;
   }
 
   function isRestrictedChannel(channel, categories = []) {
@@ -46,5 +55,64 @@
     return isVisibleInMode(normalized, restricted);
   }
 
-  return { normalizeMode, isRestrictedCategory, isRestrictedChannel, isRestrictedMedia, isVisibleInMode, canDisplayInMode };
+  function isVisibleOnHome(mode, restricted, unlocked = false) {
+    const normalized = normalizeMode(mode);
+    if (normalized === "adult-only") return Boolean(restricted && unlocked);
+    return !restricted;
+  }
+
+  function themeForMode(mode, selectedTheme) {
+    if (normalizeMode(mode) === "adult-only") return "pink";
+    return ["dark", "light", "midnight"].includes(selectedTheme) ? selectedTheme : "dark";
+  }
+
+  function categoryFindingKey(kind, categoryId) {
+    return `${String(kind || "vod")}:${String(categoryId ?? "")}`;
+  }
+
+  function getCategoryFinding(cache, kind, categoryId) {
+    return cache?.[categoryFindingKey(kind, categoryId)] || null;
+  }
+
+  function setCategoryFinding(cache, kind, categoryId, restricted, checkedAt = Date.now(), progress = {}) {
+    const key = categoryFindingKey(kind, categoryId);
+    const previous = cache?.[key];
+    return {
+      ...(cache && typeof cache === "object" ? cache : {}),
+      [key]: {
+        ...(previous && typeof previous === "object" ? previous : {}),
+        restricted: Boolean(restricted || previous?.restricted),
+        checkedAt: Number(checkedAt) || Date.now(),
+        ...progress,
+      },
+    };
+  }
+
+  function needsCategoryCheck(cache, kind, categoryId, now = Date.now(), ttlMs = 0) {
+    const finding = getCategoryFinding(cache, kind, categoryId);
+    if (finding?.complete === false) return true;
+    return !finding || Number(now) - Number(finding.checkedAt || 0) >= Math.max(0, Number(ttlMs) || 0);
+  }
+
+  function categoryScanPage(cache, kind, categoryId) {
+    const finding = getCategoryFinding(cache, kind, categoryId);
+    return finding?.complete === false ? Math.max(0, Number(finding.nextPage) || 0) : 0;
+  }
+
+  return {
+    normalizeMode,
+    isRestrictedCategory,
+    isCategoryVisibleInMode,
+    isRestrictedChannel,
+    isRestrictedMedia,
+    isVisibleInMode,
+    canDisplayInMode,
+    isVisibleOnHome,
+    themeForMode,
+    categoryFindingKey,
+    getCategoryFinding,
+    setCategoryFinding,
+    needsCategoryCheck,
+    categoryScanPage,
+  };
 }));

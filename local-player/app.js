@@ -1,18 +1,21 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.21 live catalogue fallback, content modes, themes, and update policy
+ VERSION: 1.8.22 category discovery, mode-aware Home, and pink light appearance
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.21";
+const APP_VERSION = "1.8.22";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const CONTENT_MODES = window.StbPlayContentModes;
 const UPDATE_POLICY_CACHE_KEY = "stbPlayVerifiedUpdatePolicy";
+const RESTRICTED_CATEGORY_CACHE_PREFIX = "stbPlayRestrictedCategories:";
+const RESTRICTED_CATEGORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const state = {
   catalog: null,
+  catalogLoadInProgress: false,
   category: "all",
   query: "",
   selected: null,
@@ -37,6 +40,12 @@ const state = {
   dashboardHeroIndex: 0,
   dashboardHeroTimer: null,
   dashboardHeroPaused: false,
+  restrictedDiscoveryItems: [],
+  restrictedCategoryCachePortalId: null,
+  restrictedCategoryCache: {},
+  restrictedDiscoveryScannedCategories: new Set(),
+  loadedCompleteLiveCategories: new Set(),
+  restrictedDiscoveryRequested: false,
 
   editingGroups: false,
   editingChannels: false,
@@ -266,6 +275,7 @@ const elements = {
   settingsModal: $("#settingsModal"),
   closeSettingsButton: $("#closeSettingsButton"),
   themeSelect: $("#themeSelect"),
+  themeModeNote: $("#themeModeNote"),
   playerSelect: $("#playerSelect"),
   subscriptionPlan: $("#subscriptionPlan"),
   subscriptionExpiry: $("#subscriptionExpiry"),
@@ -649,6 +659,11 @@ function mergeVodLocalIndex(items) {
   for (const item of items || []) {
     if (!item?.id) continue;
     byId.set(String(item.id), { ...byId.get(String(item.id)), ...item, id: String(item.id) });
+    const category = vodCategoryById(item.categoryId) || {
+      id: item.categoryId,
+      title: item.categoryTitle || item.genre || "",
+    };
+    rememberCategoryContents("vod", category, [item]);
   }
   state.vod.localIndex = [...byId.values()];
   state.vod.localIndexReady = false;
@@ -958,8 +973,13 @@ function formatTime(seconds) {
 
 function applyTheme() {
   if (!["dark", "light", "midnight"].includes(state.theme)) state.theme = "dark";
-  document.body.className = `theme-${state.theme}`;
+  const effectiveTheme = CONTENT_MODES?.themeForMode(state.contentMode, state.theme) || state.theme;
+  document.body.classList.remove("theme-dark", "theme-light", "theme-midnight", "theme-pink");
+  if (effectiveTheme === "pink") document.body.classList.add("theme-pink", "theme-light");
+  else document.body.classList.add(`theme-${effectiveTheme}`);
   if (elements.themeSelect) elements.themeSelect.value = state.theme;
+  if (elements.themeSelect) elements.themeSelect.disabled = state.contentMode === "adult-only";
+  if (elements.themeModeNote) elements.themeModeNote.hidden = state.contentMode !== "adult-only";
 }
 
 function persistSet(key, set) {
@@ -999,6 +1019,7 @@ function renderContentModeScreens() {
   renderDashboard();
   renderFavorites();
   updateContentModeUnlockButton();
+  if (state.contentMode === "adult-only" && state.contentModeUnlocked) void discoverRestrictedContent();
 }
 
 function setContentMode(value) {
@@ -1006,10 +1027,12 @@ function setContentMode(value) {
   const requiresUnlock = nextMode === "adult-only" && !state.contentModeUnlocked;
   const previousMode = state.contentMode;
   state.contentMode = nextMode;
+  if (previousMode !== nextMode) restrictedDiscoveryGeneration += 1;
   if (nextMode !== "adult-only") {
     state.parentalUnlocked = false;
     state.contentModeUnlocked = false;
   }
+  applyTheme();
   localStorage.setItem("stbPlayContentMode", nextMode);
   if (elements.contentModeSelect) elements.contentModeSelect.value = nextMode;
   if (state.selected?.kind === "live" && (
@@ -1064,6 +1087,76 @@ function categoryById(id) {
   return state.catalog?.categories?.find((category) => category.id === id);
 }
 
+function restrictedCategoryCacheKey() {
+  return `${RESTRICTED_CATEGORY_CACHE_PREFIX}${state.activePortalId || "default"}`;
+}
+
+function readRestrictedCategoryCache() {
+  const portalKey = state.activePortalId || "default";
+  if (state.restrictedCategoryCachePortalId === portalKey) return state.restrictedCategoryCache;
+  state.restrictedCategoryCachePortalId = portalKey;
+  try {
+    const value = JSON.parse(localStorage.getItem(restrictedCategoryCacheKey()) || "{}");
+    state.restrictedCategoryCache = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch {
+    state.restrictedCategoryCache = {};
+  }
+  return state.restrictedCategoryCache;
+}
+
+function restrictedCategoryFinding(kind, categoryId) {
+  return CONTENT_MODES?.getCategoryFinding(readRestrictedCategoryCache(), kind, categoryId) || null;
+}
+
+function saveRestrictedCategoryFinding(kind, categoryId, restricted, { checked = false, progress = {} } = {}) {
+  if (categoryId == null || String(categoryId) === "") return;
+  const updated = restricted || checked
+    ? CONTENT_MODES?.setCategoryFinding(readRestrictedCategoryCache(), kind, categoryId, restricted, Date.now(), progress) || readRestrictedCategoryCache()
+    : readRestrictedCategoryCache();
+  try { localStorage.setItem(restrictedCategoryCacheKey(), JSON.stringify(updated)); } catch {}
+  state.restrictedCategoryCache = updated;
+  state.restrictedCategoryCachePortalId = state.activePortalId || "default";
+}
+
+function needsRestrictedCategoryCheck(kind, categoryId) {
+  return CONTENT_MODES?.needsCategoryCheck(
+    readRestrictedCategoryCache(), kind, categoryId, Date.now(), RESTRICTED_CATEGORY_CACHE_TTL_MS
+  ) ?? true;
+}
+
+function restrictedDiscoverySessionKey(kind, categoryId) {
+  return `${state.activePortalId || "default"}|${kind}:${String(categoryId ?? "")}`;
+}
+
+function restrictedCategoryScanPage(kind, categoryId) {
+  return CONTENT_MODES?.categoryScanPage(readRestrictedCategoryCache(), kind, categoryId) || 0;
+}
+
+function categoryHasAdultContent(kind, category, items = []) {
+  if (CONTENT_MODES?.isRestrictedCategory(category)) return true;
+  if (kind === "live") return items.some((item) => isRestrictedLiveChannel(item));
+  return items.some((item) => isRestrictedMedia(item));
+}
+
+function rememberCategoryContents(kind, category, items, { checked = false, progress = {} } = {}) {
+  if (!category?.id) return false;
+  const restricted = categoryHasAdultContent(kind, category, items);
+  saveRestrictedCategoryFinding(kind, category.id, restricted, { checked, progress });
+  return restricted;
+}
+
+function rememberLiveCatalogue(categories, channels) {
+  const grouped = new Map();
+  for (const channel of channels || []) {
+    const id = String(channel?.genreId ?? channel?.categoryId ?? "");
+    if (!grouped.has(id)) grouped.set(id, []);
+    grouped.get(id).push(channel);
+  }
+  for (const category of categories || []) {
+    rememberCategoryContents("live", category, grouped.get(String(category.id)) || []);
+  }
+}
+
 function isRestrictedLiveChannel(channel) {
   return CONTENT_MODES?.isRestrictedChannel(channel, state.catalog?.categories || []) ||
     Boolean(categoryById(channel?.genreId)?.locked || channel?.adultLocked);
@@ -1074,11 +1167,12 @@ function contentModeAllows(restricted) {
 }
 
 function categoryModeAllows(category) {
-  // Categories are containers. Keep mixed/ordinary categories selectable;
-  // apply the mode to each channel or title inside them. Only explicitly
-  // adult categories follow the category-level mode rule.
-  const restricted = CONTENT_MODES?.isRestrictedCategory(category) || Boolean(category.locked || category.adultLocked);
-  return !restricted || contentModeAllows(true);
+  return categoryModeAllowsForType(category, "live");
+}
+
+function categoryModeAllowsForType(category, kind) {
+  const learned = restrictedCategoryFinding(kind, category?.id)?.restricted === true;
+  return CONTENT_MODES?.isCategoryVisibleInMode(state.contentMode, category, learned) ?? true;
 }
 
 function canDisplayRestrictedContent(restricted) {
@@ -1578,11 +1672,17 @@ function renderCategories() {
       categoryModeAllows(category)
   );
 
-  const categories = [
-    { id: "favorites", title: "Favorites", locked: false },
-    { id: "all", title: "All channels", locked: false },
-    ...visiblePortalCategories,
-  ];
+  const adultOnly = state.contentMode === "adult-only";
+  if (adultOnly && !visiblePortalCategories.some((category) => String(category.id) === String(state.category))) {
+    state.category = visiblePortalCategories[0]?.id || "__restricted_categories_pending__";
+  }
+  const categories = adultOnly
+    ? visiblePortalCategories
+    : [
+        { id: "favorites", title: "Favorites", locked: false },
+        { id: "all", title: "All channels", locked: false },
+        ...visiblePortalCategories,
+      ];
 
   elements.groupCount.textContent = `${visiblePortalCategories.length.toLocaleString()} groups`;
 
@@ -1626,15 +1726,18 @@ function renderCategories() {
         renderCategories();
         if (!['all', 'favorites'].includes(category.id)) {
           const loaded = state.catalog.channels.some((channel) => String(channel.genreId) === String(category.id));
-          const restrictedCategory = CONTENT_MODES?.isRestrictedCategory(category) || category.locked || category.adultLocked;
+          const restrictedCategory = CONTENT_MODES?.isRestrictedCategory(category) || category.locked || category.adultLocked ||
+            restrictedCategoryFinding("live", category.id)?.restricted === true;
           // Provider get_all_channels can return a partial list for adult
           // genres. Refresh those on selection even when a few rows exist.
-          if ((!loaded || restrictedCategory) && !(await loadLiveCategoryIntoCatalog(category.id))) return;
+          if ((!loaded || (restrictedCategory && !state.loadedCompleteLiveCategories.has(String(category.id)))) &&
+              !(await loadLiveCategoryIntoCatalog(category.id))) return;
         }
         if (state.category === category.id) renderChannels();
       };
 
-      if ((category.locked || category.adultLocked) && !state.parentalUnlocked) {
+      if (((category.locked || category.adultLocked) && !state.parentalUnlocked) ||
+          (adultOnly && !state.contentModeUnlocked)) {
         requestParentalUnlock(choose);
         return;
       }
@@ -1645,20 +1748,153 @@ function renderCategories() {
     return button;
   });
 
+  if (adultOnly && !nodes.length) {
+    const note = document.createElement("p");
+    note.className = "list-note";
+    note.textContent = "Looking for restricted categories…";
+    nodes.push(note);
+  }
   elements.categories.replaceChildren(...nodes);
   elements.categories.scrollTop = scrollTop;
 }
 
 const liveCategoryLoads = new Map();
-async function loadLiveCategoryIntoCatalog(categoryId) {
+let restrictedDiscoveryPromise = null;
+let restrictedDiscoveryGeneration = 0;
+
+function restrictedDiscoveryIsCurrent(generation, portalId) {
+  return generation === restrictedDiscoveryGeneration &&
+    state.activePortalId === portalId &&
+    state.contentMode === "adult-only" &&
+    state.contentModeUnlocked;
+}
+
+function addRestrictedDiscoveryItems(items, category) {
+  const byId = new Map(state.restrictedDiscoveryItems.map((item) => [String(item.id), item]));
+  for (const raw of items || []) {
+    if (!raw?.id) continue;
+    const item = {
+      ...raw,
+      id: String(raw.id),
+      categoryId: String(raw.categoryId ?? category?.id ?? ""),
+      categoryTitle: raw.categoryTitle || category?.title || "",
+    };
+    if (!isRestrictedMedia(item)) continue;
+    byId.set(item.id, { ...byId.get(item.id), ...item });
+  }
+  state.restrictedDiscoveryItems = [...byId.values()].slice(-500);
+}
+
+async function discoverRestrictedContent() {
+  if (!state.catalog || state.contentMode !== "adult-only" || !state.contentModeUnlocked) return;
+  if (restrictedDiscoveryPromise) {
+    state.restrictedDiscoveryRequested = true;
+    return restrictedDiscoveryPromise;
+  }
+
+  const generation = ++restrictedDiscoveryGeneration;
+  const portalId = state.activePortalId;
+  restrictedDiscoveryPromise = (async () => {
+    for (const category of state.catalog?.categories || []) {
+      if (!restrictedDiscoveryIsCurrent(generation, portalId)) return;
+      const explicitlyRestricted = CONTENT_MODES?.isRestrictedCategory(category) || category.locked || category.adultLocked;
+      const finding = restrictedCategoryFinding("live", category.id);
+      if (!explicitlyRestricted && finding?.restricted !== true && !needsRestrictedCategoryCheck("live", category.id)) continue;
+      const scanKey = restrictedDiscoverySessionKey("live", category.id);
+      if (state.restrictedDiscoveryScannedCategories.has(scanKey)) continue;
+      state.restrictedDiscoveryScannedCategories.add(scanKey);
+      const loaded = await loadLiveCategoryIntoCatalog(category.id, { quiet: true });
+      if (!loaded) state.restrictedDiscoveryScannedCategories.delete(scanKey);
+    }
+
+    if (!restrictedDiscoveryIsCurrent(generation, portalId)) return;
+    if (!state.vod.categories.length) await loadVodCategories();
+    await discoverRestrictedMediaCategories("vod", state.vod.categories, generation, portalId);
+
+    if (!restrictedDiscoveryIsCurrent(generation, portalId)) return;
+    try {
+      const result = await request("/api/series/categories");
+      if (!restrictedDiscoveryIsCurrent(generation, portalId)) return;
+      state.series.categories = Array.isArray(result.categories) ? result.categories : [];
+      renderSeriesCategories();
+    } catch {
+      // A provider error leaves these categories retryable on the next unlock.
+    }
+    await discoverRestrictedMediaCategories("series", state.series.categories, generation, portalId);
+    if (restrictedDiscoveryIsCurrent(generation, portalId) && !elements.dashboardWorkspace.hidden) renderDashboard();
+  })().finally(() => {
+    restrictedDiscoveryPromise = null;
+    const requested = state.restrictedDiscoveryRequested;
+    state.restrictedDiscoveryRequested = false;
+    if (requested && !state.catalogLoadInProgress && state.contentMode === "adult-only" && state.contentModeUnlocked) {
+      queueMicrotask(() => void discoverRestrictedContent());
+    }
+  });
+  return restrictedDiscoveryPromise;
+}
+
+async function discoverRestrictedMediaCategories(kind, categories, generation, portalId) {
+  for (const category of categories || []) {
+    if (!restrictedDiscoveryIsCurrent(generation, portalId)) return;
+    const explicitlyRestricted = CONTENT_MODES?.isRestrictedCategory(category) || category.locked || category.adultLocked;
+    const finding = restrictedCategoryFinding(kind, category.id);
+    if (!explicitlyRestricted && finding?.restricted !== true && !needsRestrictedCategoryCheck(kind, category.id)) continue;
+    const scanKey = restrictedDiscoverySessionKey(kind, category.id);
+    if (state.restrictedDiscoveryScannedCategories.has(scanKey)) continue;
+    state.restrictedDiscoveryScannedCategories.add(scanKey);
+
+    let page = explicitlyRestricted || finding?.restricted === true ? 0 : restrictedCategoryScanPage(kind, category.id);
+    for (let pageCount = 0; pageCount < 3; pageCount += 1) {
+      try {
+        const route = kind === "series" ? "/api/series/items" : "/api/vod/items";
+        const result = await request(`${route}?categoryId=${encodeURIComponent(category.id)}&page=${page}&background=1`);
+        if (!restrictedDiscoveryIsCurrent(generation, portalId)) return;
+        const sourceItems = Array.isArray(result.items) ? result.items : [];
+        const items = sourceItems.map((item) => ({
+          ...item,
+          kind: kind === "series" ? "series" : (item.kind || (item.isSeries ? "series" : "vod")),
+          categoryId: String(item.categoryId ?? category.id),
+          categoryTitle: item.categoryTitle || category.title || "",
+        }));
+        const restricted = explicitlyRestricted || items.some((item) => isRestrictedMedia(item));
+        const pageSize = Number(result.pageSize) || items.length;
+        const total = Number(result.total) || 0;
+        const hasMore = items.length > 0 && (total
+          ? (page + 1) * pageSize < total
+          : items.length >= pageSize);
+        const complete = restricted || !hasMore;
+        rememberCategoryContents(kind, category, items, {
+          checked: true,
+          progress: { complete, nextPage: complete ? 0 : page + 1 },
+        });
+        addRestrictedDiscoveryItems(items, category);
+        if (restricted) {
+          renderVodCategories();
+          renderSeriesCategories();
+        }
+        if (!elements.dashboardWorkspace.hidden) renderDashboard();
+        if (complete) break;
+        page += 1;
+      } catch {
+        state.restrictedDiscoveryScannedCategories.delete(scanKey);
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    }
+  }
+}
+
+async function loadLiveCategoryIntoCatalog(categoryId, { quiet = false } = {}) {
   if (!state.catalog || liveCategoryLoads.has(String(categoryId))) return liveCategoryLoads.get(String(categoryId));
   const key = String(categoryId);
   const pending = (async () => {
-    elements.channelCount.textContent = "Loading channels…";
-    elements.channels.replaceChildren(Object.assign(document.createElement("p"), {
-      className: "list-note",
-      textContent: "Loading channels for this category…",
-    }));
+    if (!quiet && state.category === key) {
+      elements.channelCount.textContent = "Loading channels…";
+      elements.channels.replaceChildren(Object.assign(document.createElement("p"), {
+        className: "list-note",
+        textContent: "Loading channels for this category…",
+      }));
+    }
     try {
       const result = await request(`/api/live/category?categoryId=${encodeURIComponent(key)}`);
       if (!Array.isArray(result.channels)) throw new Error("The provider returned an invalid channel list.");
@@ -1669,9 +1905,18 @@ async function loadLiveCategoryIntoCatalog(categoryId) {
         known.add(String(channel.id));
       }
       state.catalog.channels.sort((a, b) => (a.number ?? Number.MAX_SAFE_INTEGER) - (b.number ?? Number.MAX_SAFE_INTEGER) || a.name.localeCompare(b.name));
+      const category = categoryById(key);
+      const restricted = rememberCategoryContents("live", category, result.channels, {
+        checked: true,
+        progress: { complete: true, nextPage: 0 },
+      });
+      state.loadedCompleteLiveCategories.add(key);
+      renderCategories();
+      if (state.category === key) renderChannels();
+      if (restricted && !elements.dashboardWorkspace.hidden) renderDashboard();
       return true;
     } catch (error) {
-      if (state.category === key) {
+      if (!quiet && state.category === key) {
         const note = document.createElement("p");
         note.className = "list-note";
         note.textContent = `${error.message} Select the category to retry.`;
@@ -1821,6 +2066,12 @@ function renderChannels() {
 async function loadCatalog(options = {}) {
   const { onProgress = null, throwOnError = false } = options;
   const startedAt = Date.now();
+  state.catalogLoadInProgress = true;
+  state.loadedCompleteLiveCategories.clear();
+  state.restrictedDiscoveryScannedCategories.clear();
+  state.restrictedDiscoveryItems = [];
+  state.restrictedDiscoveryRequested = false;
+  restrictedDiscoveryGeneration += 1;
   onProgress?.(8, "Connecting", "Connecting to portal…");
   elements.setup.hidden = true;
   elements.topbar.hidden = false;
@@ -1836,6 +2087,7 @@ async function loadCatalog(options = {}) {
   try {
     onProgress?.(28, "Authorizing", "Checking portal access…");
     state.catalog = await request("/api/catalog");
+    rememberLiveCatalogue(state.catalog.categories, state.catalog.channels);
     onProgress?.(72, "Catalogue", "Loading channels and catalogue…");
     setStatus("Ready", true);
     localStorage.setItem("netplusLastContentRefresh", String(Date.now()));
@@ -1857,9 +2109,12 @@ async function loadCatalog(options = {}) {
     });
     onProgress?.(92, "Finalizing", "Preparing your home screen…");
     setMode("dashboard");
+    state.catalogLoadInProgress = false;
+    if (state.contentMode === "adult-only" && state.contentModeUnlocked) void discoverRestrictedContent();
     onProgress?.(100, "Complete", "Portal loaded successfully");
     return true;
   } catch (error) {
+    state.catalogLoadInProgress = false;
     setStatus("Connection failed");
     showNotice(error.message);
     trackAnalytics("portal_load_failed", {
@@ -1892,6 +2147,9 @@ async function refreshLiveCatalogAndRetry(selectedId, reason = "stale-channel") 
     const catalog = await request("/api/catalog");
     if (state.selected?.id !== selectedId) return false;
     state.catalog = catalog;
+    state.loadedCompleteLiveCategories.clear();
+    state.restrictedDiscoveryScannedCategories.clear();
+    rememberLiveCatalogue(state.catalog.categories, state.catalog.channels);
     localStorage.setItem("netplusLastContentRefresh", String(Date.now()));
     if (
       previousCategory !== "all" &&
@@ -2431,7 +2689,7 @@ function renderVodCategories() {
   const scrollTop = elements.vodCategories.scrollTop;
 
   const rows = state.vod.categories.filter((category) =>
-    categoryModeAllows(category)
+    categoryModeAllowsForType(category, "vod")
   ).map((category) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -2452,7 +2710,8 @@ function renderVodCategories() {
     button.addEventListener("click", () => {
       const choose = (verified = false) => selectVodCategory(category.id, verified);
 
-      if (category.locked && !state.parentalUnlocked) {
+      if ((category.locked && !state.parentalUnlocked) ||
+          (state.contentMode === "adult-only" && !state.contentModeUnlocked)) {
         runAfterParentalUnlock(() => choose(true));
         return;
       }
@@ -2466,7 +2725,7 @@ function renderVodCategories() {
   if (!rows.length) {
     const note = document.createElement("p");
     note.className = "list-note";
-    note.textContent = "No VOD categories are available.";
+    note.textContent = state.contentMode === "adult-only" ? "Looking for restricted categories…" : "No VOD categories are available.";
     rows.push(note);
   }
 
@@ -2658,12 +2917,14 @@ async function loadVodCategories() {
       state.vod.categories = Array.isArray(response.categories) ? response.categories : [];
       renderVodCategories();
 
-      const firstUnlocked =
-        state.vod.categories.find((category) => !category.locked) ||
-        state.vod.categories[0];
+      const visibleCategories = state.vod.categories.filter((category) => categoryModeAllowsForType(category, "vod"));
+      const firstUnlocked = visibleCategories.find((category) => !category.locked) || visibleCategories[0];
 
       if (firstUnlocked && !state.vod.categoryId) {
-        if (firstUnlocked.locked && !state.parentalUnlocked) {
+        if (state.contentMode === "adult-only" && !state.contentModeUnlocked) {
+          elements.vodCategoryTitle.textContent = "Movies & Series";
+          elements.vodCategoryMeta.textContent = "Unlock the selected content mode to browse.";
+        } else if (firstUnlocked.locked && !state.parentalUnlocked) {
           elements.vodCategoryTitle.textContent = "Movies & Series";
           elements.vodCategoryMeta.textContent = "Choose a category from the left.";
         } else {
@@ -2693,6 +2954,11 @@ async function loadVodCategories() {
 async function selectVodCategory(categoryId, verified = false) {
   const category = vodCategoryById(categoryId);
   if (!category) return;
+
+  if (state.contentMode === "adult-only" && !state.contentModeUnlocked) {
+    runAfterParentalUnlock(() => selectVodCategory(categoryId, true));
+    return;
+  }
 
   if (verified) state.parentalUnlocked = true;
   /* PIN authorization lasts for the app session; changing categories must not
@@ -2770,9 +3036,14 @@ async function loadNextVodPage(reset = false) {
     ) return;
 
     const incoming = Array.isArray(result.items) ? result.items : [];
+    const loadedItems = incoming.filter((item) => item?.id).map((item) => ({
+      ...item,
+      categoryId,
+      categoryTitle: item.categoryTitle || category.title || "",
+    }));
     let added = 0;
 
-    for (const rawItem of incoming) {
+    for (const rawItem of loadedItems) {
       if (!rawItem?.id || state.vod.itemIds.has(rawItem.id)) continue;
 
       state.vod.itemIds.add(rawItem.id);
@@ -2783,6 +3054,13 @@ async function loadNextVodPage(reset = false) {
         categoryTitle: rawItem.categoryTitle || vodCategoryById(categoryId)?.title || "",
       });
       added += 1;
+    }
+
+    const newlyRestricted = rememberCategoryContents("vod", category, loadedItems);
+    addRestrictedDiscoveryItems(loadedItems, category);
+    if (newlyRestricted) {
+      renderVodCategories();
+      renderSeriesCategories();
     }
 
     state.vod.total = Number(result.total) || state.vod.items.length;
@@ -3829,7 +4107,7 @@ function seriesCategoryById(id) { return state.series.categories.find((category)
 function renderSeriesCategories() {
   if (!elements.seriesCategories) return;
   const rows = state.series.categories.filter((category) =>
-    categoryModeAllows(category)
+    categoryModeAllowsForType(category, "series")
   ).map((category) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -3842,11 +4120,12 @@ function renderSeriesCategories() {
     }
     button.addEventListener("click", () => {
       const choose = (verified = false) => selectSeriesCategory(category.id, verified);
-      if (category.locked && !state.parentalUnlocked) runAfterParentalUnlock(() => choose(true)); else choose();
+      if ((category.locked && !state.parentalUnlocked) ||
+          (state.contentMode === "adult-only" && !state.contentModeUnlocked)) runAfterParentalUnlock(() => choose(true)); else choose();
     });
     return button;
   });
-  if (!rows.length) { const note = document.createElement("p"); note.className = "list-note"; note.textContent = "No series categories are available."; rows.push(note); }
+  if (!rows.length) { const note = document.createElement("p"); note.className = "list-note"; note.textContent = state.contentMode === "adult-only" ? "Looking for restricted series categories…" : "No series categories are available."; rows.push(note); }
   elements.seriesCategories.replaceChildren(...rows);
 }
 
@@ -3880,13 +4159,18 @@ async function loadSeriesCategories() {
     const result = await request("/api/series/categories");
     state.series.categories = Array.isArray(result.categories) ? result.categories : [];
     renderSeriesCategories();
-    const first = state.series.categories.find((category) => !category.locked) || state.series.categories[0];
-    if (first && !state.series.categoryId) selectSeriesCategory(first.id);
+    const visibleCategories = state.series.categories.filter((category) => categoryModeAllowsForType(category, "series"));
+    const first = visibleCategories.find((category) => !category.locked) || visibleCategories[0];
+    if (first && !state.series.categoryId && !(state.contentMode === "adult-only" && !state.contentModeUnlocked)) selectSeriesCategory(first.id);
   } catch (error) { elements.seriesCategories.textContent = error.message; }
 }
 
 async function selectSeriesCategory(categoryId, verified = false) {
   const category = seriesCategoryById(categoryId); if (!category) return;
+  if (state.contentMode === "adult-only" && !state.contentModeUnlocked) {
+    runAfterParentalUnlock(() => selectSeriesCategory(categoryId, true));
+    return;
+  }
   if (verified) state.parentalUnlocked = true;
   /* PIN authorization lasts for the app session. */
   if (category.locked && !state.parentalUnlocked) { requestParentalUnlock(() => selectSeriesCategory(categoryId, true)); return; }
@@ -3914,6 +4198,10 @@ async function loadNextSeriesPage(reset = false) {
       });
       added += 1;
     }
+    const currentCategory = seriesCategoryById(state.series.categoryId);
+    const newlyRestricted = rememberCategoryContents("series", currentCategory, state.series.items);
+    addRestrictedDiscoveryItems(state.series.items, currentCategory);
+    if (newlyRestricted) renderSeriesCategories();
     state.series.total = Number(result.total) || state.series.items.length; state.series.page = page + 1;
     if (!incoming.length || !added || (state.series.total && state.series.items.length >= state.series.total)) state.series.ended = true;
     renderSeriesGrid();
@@ -4062,6 +4350,7 @@ function dashboardPoolItems() {
   ]));
   const byId = new Map();
   const sources = [
+    ...(state.restrictedDiscoveryItems || []),
     ...(state.vod.shelves || []).flatMap((shelf) => shelf.items || []),
     ...(state.vod.items || []),
     ...(state.vod.localIndex || []),
@@ -4075,8 +4364,9 @@ function dashboardPoolItems() {
   const byTitle = new Map();
   for (const item of byId.values()) {
     const restricted = isRestrictedMedia(item);
-    if (state.contentMode === "adult-only" ? !restricted : restricted) continue;
-    if (!canDisplayRestrictedContent(restricted)) continue;
+    const visibleOnHome = CONTENT_MODES?.isVisibleOnHome(state.contentMode, restricted, state.contentModeUnlocked) ??
+      (state.contentMode === "adult-only" ? restricted && state.contentModeUnlocked : !restricted);
+    if (!visibleOnHome) continue;
     const title = String(item.title || "").toLowerCase()
       .replace(/[’'`]/g, "")
       .replace(/[^a-z0-9]+/g, " ")
@@ -4102,7 +4392,8 @@ function dashboardHistoryEntries() {
     .filter((entry) => {
       const searchable = [entry.title, entry.categoryTitle, entry.genre, entry.path].join(" ");
       const restricted = isRestrictedMedia(entry) || /adult|18\s*(?:\+|plus)|xxx|porn|erotic|sex|penthouse|playboy/i.test(searchable);
-      return (state.contentMode === "adult-only" ? restricted : !restricted) && canDisplayRestrictedContent(restricted);
+      return CONTENT_MODES?.isVisibleOnHome(state.contentMode, restricted, state.contentModeUnlocked) ??
+        (state.contentMode === "adult-only" ? restricted && state.contentModeUnlocked : !restricted);
     });
 }
 
@@ -5267,12 +5558,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.21.json";
+  link.download = "netplus-diagnostics-v1.8.22.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.21.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.22.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });

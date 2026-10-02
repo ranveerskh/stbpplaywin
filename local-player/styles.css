@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.21 strict search, restored live parental locking, subtitles, recovery and analytics
+ VERSION: 1.8.22 pink light appearance and mode-specific presentation
  File: styles.css
 =========================================================
 */
@@ -1277,3 +1277,40 @@ body.theme-light .dashboard-hero .dashboard-hero-meta span { color:#f5fbff !impo
   .dashboard-hero-meta { margin-top:12px; }
   .dashboard-hero-actions { margin-top:16px; }
 }
+
+/* Adult-Only uses the light surfaces and modal rules with a pink accent palette. */
+body.theme-pink {
+  --bg:#fff3f8; --bg-soft:#ffeaf3; --panel:#fffafd; --panel-2:#fff2f8; --panel-3:#fbe5ef;
+  --line:#edc5d6; --line-soft:#f4d9e4; --text:#321a2a; --text-soft:#624358; --muted:#8b6a7d;
+  --accent:#df438c; --accent-dark:#bf2e75; --accent-soft:rgba(223,67,140,.12);
+  --danger:#b73058; --danger-bg:#ffe1ec; --warning:#bb7519;
+  --shadow:0 20px 55px rgba(134,54,94,.14);
+  background:radial-gradient(circle at 82% -14%,rgba(255,189,220,.48),transparent 34rem),var(--bg);
+}
+.theme-pink .topbar { background:rgba(255,250,253,.94); }
+.theme-pink .modebar { background:rgba(255,244,249,.96); }
+.theme-pink .brand-mark,.theme-pink .setup-logo { background:linear-gradient(145deg,#ffb7d7,#df438c); color:#3a1429; box-shadow:0 8px 24px rgba(223,67,140,.2); }
+.theme-pink .mode-button:hover,.theme-pink .mode-button.active,
+.theme-pink .category-button:hover,.theme-pink .category-button.active,
+.theme-pink .vod-category-button:hover,.theme-pink .vod-category-button.active,
+.theme-pink .content-type-button.active,.theme-pink .content-type-button:hover {
+  border-color:rgba(191,46,117,.34); background:rgba(223,67,140,.12); color:#8d2457;
+}
+.theme-pink .dashboard-action-icon,.theme-pink .dashboard-card-type,.theme-pink .latest-shelf-heading span { color:#c52e76; }
+.theme-pink .hero-play-button,.theme-pink .primary-button { border-color:transparent; background:linear-gradient(135deg,#ffc1dc,#df438c); color:#3d142b; box-shadow:0 9px 24px rgba(191,46,117,.2); }
+.theme-pink .dashboard-hero { border-color:rgba(191,46,117,.28); background:linear-gradient(130deg,#b33e78 0%,#713052 54%,#473454 100%); }
+.theme-pink .dashboard-hero::before { background:linear-gradient(90deg,rgba(42,13,30,.93) 0%,rgba(57,18,41,.79) 42%,rgba(57,18,41,.28) 78%,rgba(57,18,41,.46) 100%); }
+.theme-pink .dashboard-hero .eyebrow,.theme-pink .dashboard-hero h1,
+.theme-pink .dashboard-hero .dashboard-hero-description,.theme-pink .dashboard-hero-meta span { color:#fff8fc !important; }
+.theme-pink .dashboard-resume-button { border-color:#e5a5c2; background:#fff0f7; color:#8e2859; }
+.theme-pink .favorite-toggle.is-favorite,.theme-pink .media-favorite-toggle.is-favorite,
+.theme-pink .visibility-toggle:hover,.theme-pink .close-btn:hover { color:#c52e76; }
+.theme-pink .portal-progress span { background:linear-gradient(90deg,#df438c,#ffc1dc); }
+.theme-pink .settings-subscription-card { background:linear-gradient(120deg,#ffe8f2,#fff7fa); }
+.theme-pink .settings-page-grid > .settings-section { background:#fffafd; border-color:#edc5d6; }
+.theme-pink .settings-section label { color:#624358; }
+.theme-pink .settings-section select,.theme-pink .settings-section input,
+.theme-pink .settings-box input,.theme-pink .settings-box select { border-color:#e5c4d3; }
+.theme-pink .settings-section p,.theme-pink .settings-subscription-copy p:last-child { color:#72566a; }
+.theme-pink .secondary-wide-button { background:#fff0f7; color:#762449; border-color:#edc5d6; }
+.theme-pink .field-help { color:#72566a; }

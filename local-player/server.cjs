@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.21 strict search, restored live parental locking, subtitles, recovery and analytics
+ VERSION: 1.8.22 background category discovery and fair provider request scheduling
  File: server.cjs
 =========================================================
 */
@@ -38,7 +38,7 @@ const PORT = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPo
   : 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.21";
+const APP_VERSION = "1.8.22";
 const REGISTRATION_API = normalizeRegistrationApiUrl(process.env.STB_PLAY_REGISTRATION_API || DEFAULT_REGISTRATION_API);
 const REGISTRATION_PATH = path.join(path.dirname(CONFIG_PATH), "stb-play-registration.json");
 const REGISTRATION_HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000;
@@ -3003,7 +3003,7 @@ async function getSeriesCategories() {
     }));
 }
 
-async function getSeriesItems(categoryId, page = 0) {
+async function getSeriesItems(categoryId, page = 0, queueOptions = {}) {
   const safePage = Math.max(0, Math.min(Number(page) || 0, 100));
   const key = `items:${categoryId}:${safePage}`;
 
@@ -3012,14 +3012,20 @@ async function getSeriesItems(categoryId, page = 0) {
 
   const catalog = await activeCatalog();
 
-  const response = await portalRequest(
+  const response = await queueVodRequest(
+    () => portalRequest(
+      {
+        type: "series",
+        action: "get_ordered_list",
+        category: categoryId,
+        p: safePage,
+      },
+      catalog.session
+    ),
     {
-      type: "series",
-      action: "get_ordered_list",
-      category: categoryId,
-      p: safePage,
-    },
-    catalog.session
+      priority: queueOptions.priority ?? 100,
+      background: queueOptions.background === true,
+    }
   );
 
   const js = response.data?.js || {};
@@ -3895,7 +3901,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.21.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.22.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
@@ -4581,7 +4587,10 @@ async function handle(req, res) {
       await getVodItems(
         categoryId,
         requestUrl.searchParams.get("page"),
-        requestUrl.searchParams.get("q") || ""
+        requestUrl.searchParams.get("q") || "",
+        requestUrl.searchParams.get("background") === "1"
+          ? { priority: -20, background: true }
+          : {}
       )
     );
   }
@@ -4798,7 +4807,10 @@ async function handle(req, res) {
       200,
       await getSeriesItems(
         categoryId,
-        requestUrl.searchParams.get("page")
+        requestUrl.searchParams.get("page"),
+        requestUrl.searchParams.get("background") === "1"
+          ? { priority: -20, background: true }
+          : {}
       )
     );
   }
