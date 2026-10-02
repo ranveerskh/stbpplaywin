@@ -79,27 +79,48 @@ function downloadInstaller(url, targetPath, redirectCount = 0) {
   });
 }
 
+async function waitForUpdateLauncherReady(logPath, waiter, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      if (fs.readFileSync(logPath, "utf8").includes("Updater helper started at ")) return;
+    } catch {}
+    if (waiter.exitCode !== null || waiter.signalCode) {
+      throw new Error("Windows closed the update helper before it became ready.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("Windows did not confirm that the update helper started.");
+}
+
 ipcMain.handle("download-and-install-update", async (_event, rawUrl) => {
   const updateUrl = String(rawUrl || "").trim();
   if (!isTrustedUpdateUrl(updateUrl)) throw new Error("This update link is not a trusted STB PLAY installer link.");
 
   const installerPath = path.join(app.getPath("temp"), `stb-play-update-${Date.now()}.exe`);
+  let installerDownloaded = false;
+  let waiter;
+  let launcherPath;
   try {
     await downloadInstaller(updateUrl, installerPath);
+    installerDownloaded = true;
     if (process.platform === "win32") {
-      // Start a detached waiter, confirm Windows created it, then exit. The
-      // waiter records launch failures instead of silently leaving the app closed.
+      // Keep STB PLAY open until the detached helper confirms it has started.
+      // The helper then waits for the app and player server to exit before
+      // launching setup. If Windows rejects the helper, the app remains open.
       const ids = [process.pid, playerProcess?.pid].filter((id) => Number.isInteger(id) && id > 0);
-      const launcherPath = `${installerPath}.ps1`;
+      launcherPath = `${installerPath}.ps1`;
       const logPath = `${installerPath}.log`;
+      fs.writeFileSync(logPath, `Update handoff requested at ${new Date().toISOString()}\n`, "utf8");
       fs.writeFileSync(launcherPath, `\uFEFF${buildWindowsUpdateLauncher({ installerPath, logPath, processIds: ids })}`, "utf8");
-      const waiter = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", launcherPath], {
+      waiter = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", launcherPath], {
         detached: true, windowsHide: true, stdio: "ignore",
       });
       await new Promise((resolve, reject) => {
         waiter.once("spawn", resolve);
         waiter.once("error", reject);
       });
+      await waitForUpdateLauncherReady(logPath, waiter);
       waiter.unref();
       app.quit();
     } else {
@@ -109,9 +130,19 @@ ipcMain.handle("download-and-install-update", async (_event, rawUrl) => {
     }
     return { started: true };
   } catch (error) {
-    try { fs.unlinkSync(installerPath); } catch {}
+    if (waiter && waiter.exitCode === null && !waiter.signalCode) {
+      try { waiter.kill(); } catch {}
+    }
+    if (!installerDownloaded) {
+      try { fs.unlinkSync(installerPath); } catch {}
+    }
     try { fs.unlinkSync(`${installerPath}.part`); } catch {}
-    try { fs.unlinkSync(`${installerPath}.ps1`); } catch {}
+    if (launcherPath) {
+      try { fs.unlinkSync(launcherPath); } catch {}
+    }
+    if (installerDownloaded && process.platform === "win32") {
+      throw new Error(`${error.message} The downloaded installer is saved at ${installerPath}. STB PLAY is still open; close it before running that file.`);
+    }
     throw error;
   }
 });

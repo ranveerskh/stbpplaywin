@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.25 provider setup details
+ VERSION: 1.8.26 provider setup details
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.25";
+const APP_VERSION = "1.8.26";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const CONTENT_MODES = window.StbPlayContentModes;
 const UPDATE_POLICY_CACHE_KEY = "stbPlayVerifiedUpdatePolicy";
@@ -395,8 +395,14 @@ function renderProviderSetupDetails() {
     return;
   }
 
+  const hashDeviceIdForDisplay = window.StbPlayProviderSetup?.hashDeviceIdForDisplay;
+  if (typeof hashDeviceIdForDisplay !== "function") {
+    deviceIdValue.textContent = "Device ID display unavailable";
+    return;
+  }
+
   deviceIdValue.textContent = "Loading…";
-  window.StbPlayProviderSetup.hashDeviceIdForDisplay(rawDeviceId).then((displayId) => {
+  hashDeviceIdForDisplay(rawDeviceId).then((displayId) => {
     if (renderToken !== state.providerDetailsRenderToken || rawDeviceId !== state.providerDeviceIdRaw) return;
     deviceIdValue.textContent = displayId || "Device ID unavailable";
   }).catch(() => {
@@ -5375,7 +5381,9 @@ async function startUpdateDownload(downloadUrl = state.latestUpdateUrl) {
     } catch (error) {
       buttons.forEach((button) => { button.disabled = false; button.textContent = "Download & install"; });
       if (elements.updateStatus) elements.updateStatus.textContent = error.message || "Automatic installation failed. Direct download started instead.";
-      startDirectUpdateDownload(downloadUrl);
+      if (!/downloaded installer is saved at/i.test(String(error.message || ""))) {
+        startDirectUpdateDownload(downloadUrl);
+      }
     }
     return;
   }
@@ -5589,12 +5597,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.25.json";
+  link.download = "netplus-diagnostics-v1.8.26.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.25.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.26.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });

@@ -27,7 +27,7 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: stb-play-windows-test-v1.8.25
-          path: release/Netplus-IPTV-Player-Setup-1.8.25.exe
+          name: stb-play-windows-test-v1.8.26
+          path: release/Netplus-IPTV-Player-Setup-1.8.26.exe
           if-no-files-found: error
           retention-days: 14

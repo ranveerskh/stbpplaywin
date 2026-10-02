@@ -24,11 +24,13 @@ test("provider setup display hashes the exact raw device ID as UTF-8 SHA-256 low
 test("provider setup card uses distinct local portal and STB PLAY identity labels", () => {
   const html = fs.readFileSync(path.join(ROOT, "local-player/index.html"), "utf8");
   const app = fs.readFileSync(path.join(ROOT, "local-player/app.js"), "utf8");
+  const server = fs.readFileSync(path.join(ROOT, "local-player/server.cjs"), "utf8");
 
   assert.match(html, /<h3 id="providerSetupDetailsTitle">Provider setup details<\/h3>/);
   assert.match(html, /<dt>Portal MAC<\/dt><dd id="providerPortalMacValue">No portal MAC configured<\/dd>/);
   assert.match(html, /<dt>STB PLAY Device ID<\/dt><dd id="providerDeviceIdValue"/);
   assert.match(html, /Take a screenshot of these details and send it to your authorized provider\./);
   assert.match(app, /state\.portals\.find\(\(portal\) => String\(portal\.id\) === String\(state\.activePortalId\)\)/);
-  assert.match(app, /window\.StbPlayProviderSetup\.hashDeviceIdForDisplay\(rawDeviceId\)/);
+  assert.match(app, /window\.StbPlayProviderSetup\?\.hashDeviceIdForDisplay/);
+  assert.match(server, /requestUrl\.pathname === "\/provider-setup-details\.js"[\s\S]*?serveFile\(res, "provider-setup-details\.js", "text\/javascript; charset=utf-8"\)/);
 });

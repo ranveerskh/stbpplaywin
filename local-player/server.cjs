@@ -1,7 +1,7 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.25 provider setup details
+ VERSION: 1.8.26 provider setup details
  File: server.cjs
 =========================================================
 */
@@ -38,7 +38,7 @@ const PORT = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPo
   : 3847;
 const ROOT = __dirname;
 const CONFIG_PATH = process.env.NETPLUS_CONFIG_PATH || path.join(ROOT, "config.json");
-const APP_VERSION = "1.8.25";
+const APP_VERSION = "1.8.26";
 const REGISTRATION_API = normalizeRegistrationApiUrl(process.env.STB_PLAY_REGISTRATION_API || DEFAULT_REGISTRATION_API);
 const REGISTRATION_PATH = path.join(path.dirname(CONFIG_PATH), "stb-play-registration.json");
 const REGISTRATION_HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000;
@@ -3901,7 +3901,7 @@ function downloadDiagnosticReport(res) {
   res.writeHead(200, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
-    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.25.json",
+    "Content-Disposition": "attachment; filename=netplus-diagnostics-v1.8.26.json",
     "Cache-Control": "no-store, no-cache, must-revalidate",
   });
 
@@ -4341,6 +4341,10 @@ async function handle(req, res) {
 
   if (req.method === "GET" && requestUrl.pathname === "/content-modes.js") {
     return serveFile(res, "content-modes.js", "text/javascript; charset=utf-8");
+  }
+
+  if (req.method === "GET" && requestUrl.pathname === "/provider-setup-details.js") {
+    return serveFile(res, "provider-setup-details.js", "text/javascript; charset=utf-8");
   }
 
   if (req.method === "GET" && requestUrl.pathname === "/hls.min.js") {
