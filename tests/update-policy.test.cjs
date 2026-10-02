@@ -117,10 +117,13 @@ test("Windows update handoff waits for both app processes and reports launch fai
   });
   assert.match(script, /Get-Process -Id \$processId/);
   assert.match(script, /Start-Process -FilePath \$installer/);
+  assert.match(script, /Updater helper started at/);
+  assert.match(script, /Starting installer at/);
   assert.match(script, /Out-File -LiteralPath \$log/);
   assert.match(script, /MessageBox/);
   assert.match(script, /@\(123,456\)/);
   assert.match(script, /O''Neil/);
   assert.ok(main.indexOf('waiter.once("spawn"') < main.indexOf("waiter.unref()"));
+  assert.ok(main.indexOf("waitForUpdateLauncherReady(logPath, waiter)") < main.indexOf("app.quit()", main.indexOf("download-and-install-update")));
   assert.ok(main.indexOf("waiter.unref()") < main.indexOf("app.quit()", main.indexOf("download-and-install-update")));
 });
