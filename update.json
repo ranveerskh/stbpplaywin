@@ -1,10 +1,10 @@
 {
   "platform": "windows",
   "channel": "stable",
-  "version": "1.8.24",
-  "latestVersion": "1.8.24",
+  "version": "1.8.25",
+  "latestVersion": "1.8.25",
   "minimumVersion": "0.0.0",
-  "publishedAt": "2026-10-02T17:29:06.774Z",
-  "notes": "Added Provider setup details to Windows Settings.",
-  "downloadUrl": "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.24/Netplus-IPTV-Player-Setup-1.8.24.exe"
+  "publishedAt": "2026-10-02T19:46:47.832Z",
+  "notes": "Clarified provider setup privacy in Windows Settings.",
+  "downloadUrl": "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.25/Netplus-IPTV-Player-Setup-1.8.25.exe"
 }
