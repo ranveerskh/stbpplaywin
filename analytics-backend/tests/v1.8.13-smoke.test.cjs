@@ -132,14 +132,14 @@ function closeServer(server) {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-test("v1.8.23 release markers and recovery/search boundaries are present", () => {
+test("v1.8.24 release markers and recovery/search boundaries are present", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const updateJson = JSON.parse(fs.readFileSync(path.join(ROOT, "update.json"), "utf8"));
   const app = fs.readFileSync(path.join(ROOT, "local-player", "app.js"), "utf8");
   const server = fs.readFileSync(path.join(ROOT, "local-player", "server.cjs"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "local-player", "index.html"), "utf8");
 
-  assert.equal(packageJson.version, "1.8.23");
+  assert.equal(packageJson.version, "1.8.24");
   assert.equal(packageJson.build.appId, "ca.netplus.iptvplayer");
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
   const versionParts = (value) => String(value).split(".").map(Number);

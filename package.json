@@ -1,6 +1,6 @@
 {
   "name": "stb-play",
-  "version": "1.8.23",
+  "version": "1.8.24",
   "private": true,
   "description": "STB PLAY IPTV Player for Live TV, Movies and Series",
   "author": "NetPlus",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "npm run lint && node --test tests/*.test.cjs analytics-backend/tests/v1.8.13-smoke.test.cjs",
-    "lint": "node --check electron/main.cjs && node --check electron/update-installer.cjs && node --check local-player/server.cjs && node --check local-player/app.js && node --check local-player/content-modes.js && node --check local-player/update-policy.cjs && node --check local-player/registration-client.cjs",
+    "lint": "node --check electron/main.cjs && node --check electron/update-installer.cjs && node --check local-player/server.cjs && node --check local-player/app.js && node --check local-player/content-modes.js && node --check local-player/provider-setup-details.js && node --check local-player/update-policy.cjs && node --check local-player/registration-client.cjs",
     "build": "npm run desktop:make",
     "analytics:install": "npm --prefix analytics-backend/functions install --no-audit --no-fund",
     "analytics:test": "node --test analytics-backend/tests/v1.8.13-smoke.test.cjs",

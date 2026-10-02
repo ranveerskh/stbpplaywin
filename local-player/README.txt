@@ -1,4 +1,4 @@
-STB PLAY — v1.8.23 Windows player
+STB PLAY — v1.8.24 Windows player
 
 Run “Start Player.bat” for local browser testing, or use the Electron installer
 for the desktop app. The Electron shell stores its config under its existing

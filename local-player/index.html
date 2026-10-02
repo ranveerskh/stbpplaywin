@@ -2,7 +2,7 @@
 <!--
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.23 reliable Windows update installer handoff
+ VERSION: 1.8.24 provider setup details
  File: index.html
 =========================================================
 -->
@@ -10,14 +10,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="app-version" content="1.8.23-update-installer-handoff">
+  <meta name="app-version" content="1.8.24-provider-setup-details">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>STB PLAY · 1.8.23</title>
-  <link rel="stylesheet" href="styles.css?v=1.8.23-update-installer-handoff">
+  <title>STB PLAY · 1.8.24</title>
+  <link rel="stylesheet" href="styles.css?v=1.8.24-provider-setup-details">
   <script src="hls.min.js"></script>
-  <script src="content-modes.js?v=1.8.23"></script>
+  <script src="content-modes.js?v=1.8.24"></script>
 </head>
 
 <body class="theme-dark">
@@ -65,7 +65,7 @@
     <small class="field-help">The same MAC is reused for additional portals. Change it only if your provider assigned a different one.</small>
 
     <button id="connectButton" type="submit" class="primary-button">Save &amp; Connect</button>
-    <p class="setup-version">STB PLAY v1.8.23 · Premium IPTV player</p>
+    <p class="setup-version">STB PLAY v1.8.24 · Premium IPTV player</p>
   </form>
 </main>
 
@@ -354,6 +354,15 @@
       <div id="portalList" class="portal-list"></div>
       <button id="addPortalButton" class="secondary-wide-button" type="button">Add portal</button>
     </section>
+    <section class="settings-section settings-provider-details" aria-labelledby="providerSetupDetailsTitle">
+      <h3 id="providerSetupDetailsTitle">Provider setup details</h3>
+      <p>These details are displayed locally for you to share with your authorized provider. STB PLAY sends the raw Device ID with license registration and heartbeat requests.</p>
+      <dl class="provider-details-list">
+        <div class="provider-details-row"><dt>Portal MAC</dt><dd id="providerPortalMacValue">No portal MAC configured</dd></div>
+        <div class="provider-details-row"><dt>STB PLAY Device ID</dt><dd id="providerDeviceIdValue" class="provider-device-id" aria-live="polite">Loading…</dd></div>
+      </dl>
+      <p class="provider-details-help">Take a screenshot of these details and send it to your authorized provider.</p>
+    </section>
     <section class="settings-section settings-appearance">
       <h3>Appearance</h3><label for="themeSelect">App Theme</label>
       <select id="themeSelect"><option value="dark">Dark Theme</option><option value="light">Light Theme</option><option value="midnight">Midnight Theme</option></select>
@@ -468,7 +477,7 @@
       <button id="resetPortalButton" class="danger-btn" type="button">Manage portals</button>
     </section>
     </div>
-    <p class="settings-version">STB PLAY v1.8.23 · Premium Home + personalised recommendations</p>
+    <p class="settings-version">STB PLAY v1.8.24 · Premium Home + personalised recommendations</p>
   </div>
 </div>
 
@@ -535,6 +544,7 @@
   </div>
 </div>
 
-<script src="app.js?v=1.8.23-update-installer-handoff"></script>
+<script src="provider-setup-details.js?v=1.8.24"></script>
+<script src="app.js?v=1.8.24-provider-setup-details"></script>
 </body>
 </html>
