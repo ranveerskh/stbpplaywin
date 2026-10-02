@@ -1,12 +1,12 @@
 /*
 =========================================================
  STB PLAY IPTV Player
- VERSION: 1.8.24 provider setup details
+ VERSION: 1.8.25 provider setup details
  File: app.js
 =========================================================
 */
 
-const APP_VERSION = "1.8.24";
+const APP_VERSION = "1.8.25";
 const DASHBOARD_HERO_INTERVAL_MS = 8000;
 const CONTENT_MODES = window.StbPlayContentModes;
 const UPDATE_POLICY_CACHE_KEY = "stbPlayVerifiedUpdatePolicy";
@@ -5589,12 +5589,12 @@ elements.resetDiagnosticButton?.addEventListener("click", async () => {
 elements.downloadDiagnosticButton?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = `/api/diagnostics/download?ts=${Date.now()}`;
-  link.download = "netplus-diagnostics-v1.8.24.json";
+  link.download = "netplus-diagnostics-v1.8.25.json";
   document.body.append(link);
   link.click();
   link.remove();
 
-  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.24.json to your support message.";
+  elements.diagnosticNotice.textContent = "Report downloaded. Attach netplus-diagnostics-v1.8.25.json to your support message.";
   elements.diagnosticNotice.style.color = "#35dbc5";
   elements.diagnosticNotice.hidden = false;
 });

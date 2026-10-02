@@ -132,14 +132,14 @@ function closeServer(server) {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-test("v1.8.24 release markers and recovery/search boundaries are present", () => {
+test("v1.8.25 release markers and recovery/search boundaries are present", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const updateJson = JSON.parse(fs.readFileSync(path.join(ROOT, "update.json"), "utf8"));
   const app = fs.readFileSync(path.join(ROOT, "local-player", "app.js"), "utf8");
   const server = fs.readFileSync(path.join(ROOT, "local-player", "server.cjs"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "local-player", "index.html"), "utf8");
 
-  assert.equal(packageJson.version, "1.8.24");
+  assert.equal(packageJson.version, "1.8.25");
   assert.equal(packageJson.build.appId, "ca.netplus.iptvplayer");
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
   const versionParts = (value) => String(value).split(".").map(Number);
@@ -172,6 +172,8 @@ test("v1.8.24 release markers and recovery/search boundaries are present", () =>
   assert.match(app, /vodSubtitleSelect/);
   assert.match(server, /enabled: false/);
   assert.match(html, /attach the JSON file to your support message/i);
+  assert.match(html, /STB PLAY does not upload the Portal MAC to its backend/i);
+  assert.match(html, /License registration and heartbeat continue using the existing raw Device ID/i);
   assert.match(app, /\/api\/analytics\/event/);
 });
 
