@@ -1,10 +1,10 @@
 {
   "platform": "windows",
   "channel": "stable",
-  "version": "1.8.21",
-  "latestVersion": "1.8.21",
+  "version": "1.8.22",
+  "latestVersion": "1.8.22",
   "minimumVersion": "0.0.0",
-  "publishedAt": "2026-10-01T15:07:33.777Z",
-  "notes": "Fixed settings selection persistence, refreshed app icons, and improved local asset loading.",
-  "downloadUrl": "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.21/Netplus-IPTV-Player-Setup-1.8.21.exe"
+  "publishedAt": "2026-10-02T00:56:37.388Z",
+  "notes": "Improved category discovery, Home recommendations, and appearance settings.",
+  "downloadUrl": "https://github.com/ranveerskh/stbpplaywin/releases/download/v1.8.22/Netplus-IPTV-Player-Setup-1.8.22.exe"
 }
